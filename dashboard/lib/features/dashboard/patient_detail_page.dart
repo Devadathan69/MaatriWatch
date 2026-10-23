@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/concern_summary_panel.dart';
+import '../../widgets/nutrition_review_panel.dart';
 import 'package:intl/intl.dart';
 import 'package:maatriwatch_patient_app/core/design_tokens.dart';
 
@@ -235,6 +236,10 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ConcernSummaryPanel(
+              api: widget.api,
+              hospitalId: widget.hospital.hospitalId,
+              patientId: widget.patient.id),
+          NutritionReviewPanel(
               api: widget.api,
               hospitalId: widget.hospital.hospitalId,
               patientId: widget.patient.id),

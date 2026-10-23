@@ -31,7 +31,7 @@ Status: implemented. Bilingual extraction, confirmation, audio validation, repea
 
 ## Phase 3 — Reports and visual nutrition planning
 
-Status: planned.
+Status: implemented. 72 backend, 15 patient, and four dashboard tests pass; both analyzers clean. The running web UI was visually inspected with synthetic data. Real OCR/model accuracy, native-device behavior, nutrient adequacy, and clinical validation remain unverified.
 
 - PDF/image extraction through a configurable multimodal provider, with document-size/type checks, explicit processing consent, extracted value/unit/reference/source evidence, and a mandatory correction/confirmation screen.
 - A deterministic, versioned interpretation layer compares supported tests using source-defined protocols and pregnancy context. Unsupported tests, unclear units, absent gestational information, and missing assay-specific ranges remain inconclusive.
@@ -72,5 +72,6 @@ Unit and mock-provider tests establish implementation behavior, not medical accu
 ## Final submission updates
 
 After implementation, replace baseline-only wording with a dated distinction between prior work and these weekend features. Keep the demo link/team roster pending until actual values are available. Include deployment instructions, environment templates, required worker processes, test results, provider limitations, and a revised AI Impact Statement under 200 words.
+
 
 

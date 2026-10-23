@@ -152,6 +152,12 @@ def companion_chat():
         answer = urgent_answer(prefs['language'])
     else:
         context = health_context(patient) if prefs['context_enabled'] else {'health_context': 'not shared'}
+        if prefs['context_enabled']:
+            context['confirmed_report_comparisons'] = [r['data'] for r in repo.list('report_analysis', 3)]
+            context['nutrition_plan_status'] = [
+                {'title':r['data'].get('title'),'status':r['data'].get('status'),'focus':r['data'].get('focus')}
+                for r in repo.list('diet_plan',1)]
+            context['recent_confirmed_concerns'] = [r['data'] for r in repo.list('concern',10)]
         memories = repo.list('memory') if prefs['memory_enabled'] else []
         inputs = [{'role': 'user', 'content': 'Selected language and context DATA: ' + json.dumps(
             {'language': prefs['language'], 'health': context, 'memories': [r['data'] for r in memories]}, ensure_ascii=False)}]

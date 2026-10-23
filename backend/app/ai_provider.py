@@ -13,13 +13,15 @@ def output_text(result):
                      if part.get('type') == 'output_text').strip()
 
 
-def response(instructions, inputs, *, schema=None, max_tokens=1200):
+def response(instructions, inputs, *, schema=None, max_tokens=2500):
     config = current_app.config
     key = config.get('OPENAI_API_KEY')
     if not key:
         abort(503, description='AI is not configured. Your saved information is still available.')
     body = {'model': config['OPENAI_CHAT_MODEL'], 'instructions': instructions,
             'input': inputs, 'max_output_tokens': max_tokens, 'store': False}
+    if str(body['model']).startswith('gpt-5'):
+        body['reasoning'] = {'effort':'low'}
     if schema:
         body['text'] = {'format': {'type': 'json_schema', 'name': 'care_result', 'strict': True, 'schema': schema}}
     req = Request('https://api.openai.com/v1/responses', data=json.dumps(body).encode(),

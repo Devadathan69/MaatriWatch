@@ -9,6 +9,7 @@ import 'patient_followup.dart';
 import 'patient_health_actions.dart';
 import 'companion_page.dart';
 import 'concerns_page.dart';
+import 'nutrition_page.dart';
 
 /// Patient-facing safety companion. It routes concerns to care teams; it does not diagnose.
 class PatientHome extends StatefulWidget {
@@ -310,6 +311,16 @@ class _PatientHomeState extends State<PatientHome> {
     final completedCheckins = wellbeing['completed_this_week'] ?? 0;
     final recommendedCheckins = wellbeing['recommended_checkins_per_week'] ?? 2;
     return ListView(padding: const EdgeInsets.all(20), children: [
+      Card(
+          child: ListTile(
+              leading: const Icon(Icons.restaurant_menu_outlined),
+              title: const Text('Nourish • reports & your food plan'),
+              subtitle: const Text(
+                  'Confirm your report, explore familiar meals, and share a draft for clinician review.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push<void>(MaterialPageRoute(
+                  builder: (_) => NutritionPage(api: _api))))),
+      const SizedBox(height: 16),
       Text('Your care plan', style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 6),
       const Text('Small steps help your care team support you between visits.'),

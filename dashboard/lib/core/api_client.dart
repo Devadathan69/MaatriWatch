@@ -25,6 +25,14 @@ class ApiClient {
   final http.Client _client;
   final String _baseUrl;
   final String? demoRole;
+  Future<Map<String, dynamic>> patientNutrition(
+          String hospitalId, String patientId) =>
+      _request('GET', '/hospitals/$hospitalId/patients/$patientId/nutrition');
+  Future<Map<String, dynamic>> reviewNutrition(String hospitalId,
+          String patientId, String planId, String action, String note) =>
+      _request('PATCH',
+          '/hospitals/$hospitalId/patients/$patientId/nutrition/$planId',
+          body: {'action': action, 'note': note});
   Future<Map<String, dynamic>> concernSummary(
           String hospitalId, String patientId, String month) =>
       _request('GET',

@@ -20,6 +20,36 @@ class PatientApi {
   final http.Client _client;
   final String _baseUrl;
   final bool _demoMode;
+  Future<Map<String, dynamic>> reportAnalyses() =>
+      _request('GET', '/patient/reports/analyses');
+  Future<Map<String, dynamic>> extractReportText(String value) =>
+      _request('POST', '/patient/reports/extract',
+          body: {'report_text': value, 'processing_consent': true});
+  Future<Map<String, dynamic>> confirmReport(Map<String, dynamic> value) =>
+      _request('POST', '/patient/reports/analyses', body: value);
+  Future<Map<String, dynamic>> nutrition() =>
+      _request('GET', '/patient/nutrition');
+  Future<Map<String, dynamic>> nutritionPreferences(
+          Map<String, dynamic> values) =>
+      _request('PUT', '/patient/nutrition', body: values);
+  Future<Map<String, dynamic>> createMealPlan(String reportId) =>
+      _request('POST', '/patient/nutrition', body: {'report_id': reportId});
+  Future<Map<String, dynamic>> changeMeal(
+          String id, Map<String, dynamic> values) =>
+      _request('PATCH', '/patient/nutrition/plans/$id', body: values);
+  Future<Map<String, dynamic>> extractReportFile(
+      Uint8List bytes, String filename) async {
+    final request = http.MultipartRequest(
+        'POST', Uri.parse('$_baseUrl/patient/reports/extract'))
+      ..headers.addAll(await authorizationHeaders())
+      ..fields['processing_consent'] = 'true'
+      ..files.add(
+          http.MultipartFile.fromBytes('document', bytes, filename: filename));
+    return _responseValue(
+        await http.Response.fromStream(await _client.send(request))
+            .timeout(const Duration(seconds: 75)));
+  }
+
   Future<Map<String, dynamic>> concerns() =>
       _request('GET', '/patient/concerns');
   Future<Map<String, dynamic>> draftConcern(String text, String language) =>
