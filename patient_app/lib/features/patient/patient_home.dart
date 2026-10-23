@@ -8,6 +8,7 @@ import '../../core/patient_realtime.dart';
 import 'patient_followup.dart';
 import 'patient_health_actions.dart';
 import 'companion_page.dart';
+import 'concerns_page.dart';
 
 /// Patient-facing safety companion. It routes concerns to care teams; it does not diagnose.
 class PatientHome extends StatefulWidget {
@@ -376,6 +377,12 @@ class _PatientHomeState extends State<PatientHome> {
           onPressed: _report,
           icon: const Icon(Icons.edit_note_outlined),
           label: const Text('Report symptoms to my care team')),
+      const SizedBox(height: 10),
+      OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => ConcernsPage(api: _api))),
+          icon: const Icon(Icons.mic_none_rounded),
+          label: const Text('Speak Your Concern • English / മലയാളം')),
       const SizedBox(height: 10),
       OutlinedButton.icon(
           onPressed: _openAssistant,

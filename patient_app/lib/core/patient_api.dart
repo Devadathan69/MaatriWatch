@@ -20,6 +20,34 @@ class PatientApi {
   final http.Client _client;
   final String _baseUrl;
   final bool _demoMode;
+  Future<Map<String, dynamic>> concerns() =>
+      _request('GET', '/patient/concerns');
+  Future<Map<String, dynamic>> draftConcern(String text, String language) =>
+      _request('POST', '/patient/concerns/draft', body: {
+        'text': text,
+        'language': language,
+        'processing_consent': true
+      });
+  Future<Map<String, dynamic>> saveConcern(Map<String, dynamic> values) =>
+      _request('POST', '/patient/concerns', body: values);
+  Future<Map<String, dynamic>> concernSummary(String month,
+          {bool generate = false}) =>
+      _request(
+          generate ? 'POST' : 'GET', '/patient/concerns/summary?month=$month',
+          body: generate ? {'processing_consent': true} : null);
+  Future<Map<String, dynamic>> transcribeConcern(
+      Uint8List bytes, String filename, String language) async {
+    final request = http.MultipartRequest(
+        'POST', Uri.parse('$_baseUrl/patient/concerns/transcribe'))
+      ..headers.addAll(await authorizationHeaders())
+      ..fields.addAll({'language': language, 'processing_consent': 'true'})
+      ..files.add(
+          http.MultipartFile.fromBytes('audio', bytes, filename: filename));
+    return _responseValue(
+        await http.Response.fromStream(await _client.send(request))
+            .timeout(const Duration(seconds: 75)));
+  }
+
   Future<Map<String, String>> authorizationHeaders() async {
     if (_demoMode && !kReleaseMode) {
       return {'Accept': 'application/json', 'X-Demo-Role': 'patient'};

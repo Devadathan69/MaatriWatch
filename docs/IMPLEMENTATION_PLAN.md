@@ -20,7 +20,7 @@ Status: implemented. 59 backend tests, 11 patient widget tests, and four dashboa
 
 ## Phase 2 — Speak Your Concern and longitudinal summaries
 
-Status: planned.
+Status: implemented. Bilingual extraction, confirmation, audio validation, repeated concerns, timezone boundaries, sharing, source-citation rejection, and scheduled summary opt-in have automated coverage. Live microphone/provider testing remains pending.
 
 - Malayalam/English recording/upload and editable transcription; typed entry remains available when recording/provider access fails.
 - Schema-constrained extraction of symptoms, onset, frequency, severity, and user language, with source text retained and user confirmation before saving.
@@ -72,4 +72,5 @@ Unit and mock-provider tests establish implementation behavior, not medical accu
 ## Final submission updates
 
 After implementation, replace baseline-only wording with a dated distinction between prior work and these weekend features. Keep the demo link/team roster pending until actual values are available. Include deployment instructions, environment templates, required worker processes, test results, provider limitations, and a revised AI Impact Statement under 200 words.
+
 

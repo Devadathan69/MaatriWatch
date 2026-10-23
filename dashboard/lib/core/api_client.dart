@@ -25,6 +25,10 @@ class ApiClient {
   final http.Client _client;
   final String _baseUrl;
   final String? demoRole;
+  Future<Map<String, dynamic>> concernSummary(
+          String hospitalId, String patientId, String month) =>
+      _request('GET',
+          '/hospitals/$hospitalId/patients/$patientId/concerns/summary?month=$month');
 
   Future<Map<String, dynamic>> me() => _request('GET', '/me');
 

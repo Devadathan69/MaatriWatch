@@ -87,6 +87,7 @@ class Config:
     # unset to disable the endpoint without affecting patient care APIs.
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     OPENAI_CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini").strip()
+    OPENAI_TRANSCRIBE_MODEL = os.getenv('OPENAI_TRANSCRIBE_MODEL', 'gpt-transcribe').strip()
     OPENAI_CHAT_TIMEOUT_SECONDS = _positive_int("OPENAI_CHAT_TIMEOUT_SECONDS", 20)
     OPENAI_CHAT_MAX_REQUESTS = _positive_int("OPENAI_CHAT_MAX_REQUESTS", 12)
     OPENAI_CHAT_WINDOW_SECONDS = _positive_int("OPENAI_CHAT_WINDOW_SECONDS", 900)

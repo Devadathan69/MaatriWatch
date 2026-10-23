@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from threading import RLock
 from uuid import UUID, uuid4
 
@@ -23,6 +23,8 @@ def wire(value):
         return [wire(v) for v in value]
     if isinstance(value, datetime):
         return value.astimezone(timezone.utc).isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
     if isinstance(value, UUID):
         return str(value)
     # psycopg numeric values are intentionally converted only at the API edge.

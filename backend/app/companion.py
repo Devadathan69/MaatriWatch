@@ -14,7 +14,7 @@ from .db import get_db
 from .measurements import public_vital
 
 companion_bp = Blueprint('companion', __name__)
-DEFAULTS = {'memory_enabled': False, 'context_enabled': False, 'language': 'en', 'timezone': 'Asia/Kolkata'}
+DEFAULTS = {'memory_enabled': False, 'context_enabled': False, 'auto_summary_enabled': False, 'language': 'en', 'timezone': 'Asia/Kolkata'}
 URGENT_TERMS = ('suicide', 'kill myself', 'harm myself', 'harm my baby', 'chest pain',
                 'trouble breathing', 'cannot breathe', 'heavy bleeding', 'unconscious', 'fainted',
                 'severe headache', 'blurred vision', 'ആത്മഹത്യ', 'ജീവിക്കേണ്ട', 'സ്വയം ഉപദ്രവ',
@@ -92,7 +92,7 @@ def companion_home():
         values = body()
         if set(values) - set(DEFAULTS):
             abort(400, description='Unsupported companion preference')
-        for key in ('memory_enabled', 'context_enabled'):
+        for key in ('memory_enabled', 'context_enabled', 'auto_summary_enabled'):
             if key in values and not isinstance(values[key], bool):
                 abort(400, description=f'{key} must be a boolean')
         if values.get('language', prefs['language']) not in ('en', 'ml'):

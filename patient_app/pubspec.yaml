@@ -15,6 +15,7 @@ dependencies:
   # 12.3.0 fixes Android Gradle Plugin 9 registration/build compatibility.
   file_picker: ^12.3.0
   http: ^1.6.0
+  record: ^6.2.1
 
 dev_dependencies:
   flutter_lints: ^6.0.0

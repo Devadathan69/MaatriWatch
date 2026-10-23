@@ -209,6 +209,18 @@ class _CompanionPageState extends State<CompanionPage> {
                                             {'context_enabled': v}));
                                     update(() {});
                                   }),
+                              SwitchListTile(
+                                  title: const Text(
+                                      'Prepare monthly AI concern summaries'),
+                                  subtitle: const Text(
+                                      'At month end, send confirmed concern history to AI for a draft handoff. The worker must be running.'),
+                                  value: _prefs['auto_summary_enabled'] == true,
+                                  onChanged: (v) async {
+                                    await _act(() => widget.api
+                                        .companionPreferences(
+                                            {'auto_summary_enabled': v}));
+                                    update(() {});
+                                  }),
                               DropdownButtonFormField<String>(
                                   initialValue:
                                       _prefs['language'] as String? ?? 'en',

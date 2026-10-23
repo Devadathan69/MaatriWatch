@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/concern_summary_panel.dart';
 import 'package:intl/intl.dart';
 import 'package:maatriwatch_patient_app/core/design_tokens.dart';
 
@@ -233,6 +234,11 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
   Widget _mainColumn(BuildContext context, PatientDetail detail) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          ConcernSummaryPanel(
+              api: widget.api,
+              hospitalId: widget.hospital.hospitalId,
+              patientId: widget.patient.id),
+          const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(MaatriTokens.space16),

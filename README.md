@@ -9,7 +9,8 @@ Connected maternal-care support through a wearable prototype, a patient companio
 The [four-phase implementation plan](docs/IMPLEMENTATION_PLAN.md) tracks the requested companion, bilingual concerns, report/nutrition, and video-consultation work. The feature inventory below remains the disclosed **prior-work baseline**.
 
 - **Phase 1:** personal companion with opt-in memory, inspect/delete controls, separately consented health context, English/Malayalam replies, and timezone-aware reminders/inbox. The server reminder worker must run continuously; device push delivery is not included yet.
-- **Phases 2–4:** planned, not yet delivered.
+- **Phase 2:** English/Malayalam short audio transcription and typed concerns, editable structured symptoms, confirmation and sharing controls, recurring-symptom history, source-linked monthly summaries, and a clinician summary panel. Optional automatic AI month-end handoffs require explicit opt-in and the worker. Audio is not retained by the app; native/browser microphone behavior and real provider transcription still require device/integration validation.
+- **Phases 3–4:** planned, not yet delivered.
 
 Apply migration `010_companion_memory.sql` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
 
