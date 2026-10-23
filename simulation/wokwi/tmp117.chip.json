@@ -1,0 +1,8 @@
+{
+  "name": "TMP117 synthetic temperature",
+  "author": "MaatriWatch",
+  "pins": ["VCC", "GND", "SDA", "SCL"],
+  "controls": [
+    { "id": "temperature", "label": "Device / skin-adjacent temperature (C)", "type": "range", "min": 20, "max": 42, "step": 0.1 }
+  ]
+}

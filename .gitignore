@@ -1,47 +1,125 @@
-__pycache__/
-/.tool/
-*.py[cod]
-.pytest_cache/
-.venv/
+# Local environment files, including variants such as .env.production and backups
 .env
-
-# Local configuration and secrets
-backend/env
+.env.*
 *.env
 *.env.*
+backend/env
+.envrc
+.direnv/
+# Commit templates containing placeholders only.
 !.env.example
 !*.env.example
 
-# Firebase Admin credentials and per-device firmware secrets
+# Credentials, private certificates, Firebase Admin accounts, and device secrets
+secrets.h
+secrets.*
+!secrets.example.h
 *firebase-adminsdk*.json
 *service-account*.json
-firmware/**/secrets.h
-
-# Python test and coverage output
-.coverage
-coverage.xml
-htmlcov/
-
-# Flutter and Dart generated files
-**/.dart_tool/
-**/.packages
-**/build/
-**/.flutter-plugins
-**/.flutter-plugins-dependencies
-
-# Android and Gradle local output
-**/.gradle/
-**/local.properties
-**/.cxx/
-**/captures/
+*service_account*.json
+*serviceAccount*.json
+credentials.json
+credentials.*.json
+application_default_credentials.json
+google-services.json
+GoogleService-Info.plist
+*.pem
+*.key
+*.p12
+*.pfx
 *.keystore
 *.jks
 key.properties
+.ssh/
+.aws/
+.gcloud/
+.config/gcloud/
+.npmrc
+.netrc
+_netrc
+.pypirc
+.git-credentials
 
-# IDE and operating system files
+# Local Flutter build settings can contain connection details or credentials
+dart-defines*.json
+*.dart-defines.json
+firebase-config*.json
+.firebaserc
+.firebase/
+
+# Python environments, caches, packaging, and coverage
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.egg-info/
+/dist/
+
+# Flutter, Dart, and dependencies downloaded by build.sh
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/flutter/
+node_modules/
+
+# Android and Gradle local output
+.gradle/
+local.properties
+.cxx/
+captures/
+*.apk
+*.aab
+*.ipa
+
+# Firmware and simulation compiler output
+.pio/
+*.bin
+*.elf
+*.hex
+*.wasm
+*.o
+*.map
+
+# Local databases, uploads, exports, and scratch work may contain private data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.sql.gz
+/uploads/
+/backend/uploads/
+/backups/
+/output/
+/tmp/
+/docs/_qa/
+/docs/*.docx
+/docs/*.pdf
+/.tool/
+*.zip
+*.tar.gz
+
+# IDE, logs, and operating system files
 .idea/
 .vscode/
 *.iml
 *.log
+*.swp
+*.swo
+*.bak
+*~
 .DS_Store
 Thumbs.db
+Desktop.ini

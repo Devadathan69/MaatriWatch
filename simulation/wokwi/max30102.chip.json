@@ -1,0 +1,11 @@
+{
+  "name": "MAX30102 synthetic PPG",
+  "author": "MaatriWatch",
+  "pins": ["VCC", "GND", "SDA", "SCL"],
+  "controls": [
+    { "id": "heartRate", "label": "Synthetic pulse (bpm)", "type": "range", "min": 40, "max": 180, "step": 1 },
+    { "id": "oxygen", "label": "Synthetic oxygen (%)", "type": "range", "min": 75, "max": 100, "step": 1 },
+    { "id": "contact", "label": "Finger: 0 absent / 1 present", "type": "range", "min": 0, "max": 1, "step": 1 },
+    { "id": "noise", "label": "Optical noise", "type": "range", "min": 0, "max": 100, "step": 1 }
+  ]
+}

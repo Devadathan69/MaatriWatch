@@ -37,11 +37,11 @@ cell while unattended, and use a protected LiPo.
    `MaatriWatch-Setup` Wi-Fi network (using `PROVISIONING_PASSWORD`) and complete the captive portal. ESP32
    station mode is the correct internet-connected mode; SoftAP/BLE are suitable
    provisioning transports, not the clinical data channel. [Espressif Wi-Fi documentation](https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/wifi.html)
-5. Put a finger gently and still over the MAX30102 for 10–20 seconds. The OLED
-   first shows **finding rhythm** and a four-second SpO₂ settling indicator;
-   after it finds a clean PPG waveform, it keeps the last valid estimate for
-   up to 45 seconds so one motion-corrupted window does not blank the display.
-   Hold the button 1.2 seconds to issue SOS.
+5. Put a finger gently and still over the MAX30102 for 6–10 seconds. The OLED
+   first shows **finding rhythm** and then a four-second SpO₂ settling
+   indicator. After it finds a clean PPG waveform, it keeps the last valid
+   estimate only while finger contact remains present. Hold the button 1.2
+   seconds to issue SOS.
 
 ## Reading the OLED and Serial Monitor
 
@@ -60,10 +60,16 @@ environmental readings, never body temperature.
 For hardware diagnosis, open Arduino IDE's Serial Monitor at **115200 baud**.
 Every two seconds firmware prints `ir`, `red`, `contact`, `samples`, `bpm`,
 `spo2`, `pi`, and DHT failure count. With a finger in place, `contact=yes`
-must appear and the `samples` count should climb to 100. If it stays at zero
-or `contact=no`, re-check the MAX30102 wiring, its 3.3 V supply, and that the
-sensor window is fully covered. If `dhtFailures` keeps increasing, re-check
-the DHT11 data pin and its pull-up resistor.
+must appear, `samples` should repeatedly climb toward 100, and then
+`hrFresh=yes` should appear before `bpm` is sent to the dashboard. SpO₂ needs
+one clean 100-sample window. A successful device upload prints `Telemetry
+status: 201`; then use the dashboard's **Refresh** once if a live update has
+not already arrived. If `ir` stays near 262143, the optical signal is
+saturated: confirm the latest firmware is flashed and keep the sensor away
+from bright ambient light. If `contact=no` persists, re-check MAX30102 wiring,
+its 3.3 V supply, and that the sensor window is fully covered. If
+`dhtFailures` keeps increasing, re-check the DHT11 data pin and its pull-up
+resistor.
 
 ## Hospital lifecycle
 

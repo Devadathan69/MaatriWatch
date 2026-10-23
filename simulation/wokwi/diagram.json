@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "author": "MaatriWatch",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-xiao-esp32-s3", "id": "xiao", "top": 120, "left": 20, "attrs": {} },
+    { "type": "board-ssd1306", "id": "oled", "top": -70, "left": 220, "attrs": { "i2cAddress": "0x3c" } },
+    { "type": "chip-max30102", "id": "ppg", "top": 110, "left": 240, "attrs": { "heartRate": "78", "oxygen": "98", "contact": "1", "noise": "0" } },
+    { "type": "chip-tmp117", "id": "tmp", "top": 245, "left": 240, "attrs": { "temperature": "33.5" } },
+    { "type": "wokwi-mpu6050", "id": "imu", "top": 370, "left": 210, "attrs": { "accelZ": "1" } },
+    { "type": "wokwi-pushbutton", "id": "sos", "top": 340, "left": -95, "attrs": { "color": "red", "label": "SOS: hold 2 s", "key": "S" } },
+    { "type": "wokwi-slide-switch", "id": "power", "top": -65, "left": 0, "attrs": { "value": "1", "bounce": "0" } },
+    { "type": "wokwi-text", "id": "title", "top": -155, "left": 0, "attrs": { "text": "MaatriWatch - synthetic sensor simulation" } },
+    { "type": "wokwi-text", "id": "togglelabel", "top": -95, "left": -120, "attrs": { "text": "Virtual power toggle (D1)" } },
+    { "type": "wokwi-text", "id": "notelabel", "top": 490, "left": 0, "attrs": { "text": "SDA = D4 / GPIO5 | SCL = D5 / GPIO6\nBattery/charger not electrically simulated" } }
+  ],
+  "connections": [
+    ["xiao:D4", "oled:SDA", "green", ["h-65", "v-150"]],
+    ["xiao:D5", "oled:SCL", "blue", ["h-80", "v-170"]],
+    ["xiao:3V3", "oled:VCC", "red", ["h70", "v-160"]],
+    ["xiao:GND", "oled:GND", "black", ["h85", "v-175"]],
+    ["xiao:D4", "ppg:SDA", "green", []],
+    ["xiao:D5", "ppg:SCL", "blue", []],
+    ["xiao:3V3", "ppg:VCC", "red", []],
+    ["xiao:GND", "ppg:GND", "black", []],
+    ["xiao:D4", "tmp:SDA", "green", []],
+    ["xiao:D5", "tmp:SCL", "blue", []],
+    ["xiao:3V3", "tmp:VCC", "red", []],
+    ["xiao:GND", "tmp:GND", "black", []],
+    ["xiao:D4", "imu:SDA", "green", []],
+    ["xiao:D5", "imu:SCL", "blue", []],
+    ["xiao:3V3", "imu:VCC", "red", []],
+    ["xiao:GND", "imu:GND", "black", []],
+    ["imu:AD0", "xiao:GND", "black", []],
+    ["xiao:D0", "sos:1.l", "orange", []],
+    ["xiao:GND", "sos:2.l", "black", []],
+    ["power:1", "xiao:GND", "black", []],
+    ["power:2", "xiao:D1", "purple", []],
+    ["power:3", "xiao:3V3", "red", []]
+  ],
+  "dependencies": {}
+}

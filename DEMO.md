@@ -1,73 +1,35 @@
-# Hackathon demo runbook
+# Local demonstration guide
 
-This is the time-boxed first-prototype mode. It preserves the production
-Flask/Postgres/Firebase code paths, but enables a local in-memory fixture when
-the supplied Supabase hostname is unreachable from the demo machine.
+The current PowerShell setup is in the root [README](README.md#setup--run). This guide distinguishes the separate demonstrations and their limits.
 
-## Start the demo
+## Clinician workflow
 
-Terminal 1, from `C:\MaatriWatch`:
+1. Start the backend with `APP_ENV=development`, `DEMO_MODE=true`, and `DEMO_IN_MEMORY=true`, using the root setup steps. Bind it to localhost only.
+2. Start the dashboard in a Flutter **debug** build with `DEMO_MODE=true` and the local API URL.
+3. Choose Doctor to browse synthetic patients, trend history, alerts, and notes.
+4. From the root, set `DEMO_MODE=true` and `DEMO_IN_MEMORY=true` in the trigger terminal, then run `.\.venv\Scripts\python.exe backend/scripts/trigger_demo_alert.py --scenario fall`.
+5. Show the resulting possible-fall review signal and acknowledge/resolve it through the clinician workflow.
 
-```text
-python -m flask --app app run --host 127.0.0.1 --port 8000 --no-reload
-```
+The in-memory fixture resets on restart. It exercises clinician routes and the deterministic alert engine, but does not persist PostgreSQL history or deliver Firebase projections. The role picker also has limited patient and hospital-admin presentation views.
 
-Terminal 2:
+The legacy trigger script still accepts `hypertension` and `pph` argument names. PPH detection is outside the current alert policy, and BP alerts require explicit validated-cuff/clinician-entered provenance. Those argument names are not proof of functioning clinical detection; use the fall scenario for this demo.
 
-```text
-python -m http.server 3000 --directory dashboard\build\web
-```
+## Patient presentation
 
-Open `http://localhost:3000`. The role picker offers:
+From `patient_app/`, run `flutter pub get`, then `flutter run --dart-define=DEMO_MODE=true` with an Android emulator/device selected. This is a debug-only presentation with synthetic state, separate from hospital account sign-in and the connected backend.
 
-- **Doctor** — real Flask clinician routes with seven seeded patients,
-  trend history, status chips, alert acknowledgement/resolution, and notes.
-- **Patient** — simplified vitals, SOS confirmation, and a three-question
-  EPDS-style check-in.
-- **Hospital Admin** — a concise prototype hospital/device overview.
+The connected patient workflow instead requires a hospital-provisioned Firebase account, linked PostgreSQL patient record, public Firebase client configuration, and the API. The current five-question wellbeing support check-in is not a validated EPDS/PHQ-9 screen or a depression score.
 
-## Demo centerpiece: trigger a live risk signal
+## Hardware simulation
 
-Keep Doctor open on the patient or alert view, then run this in Terminal 3:
+The [Wokwi guide](simulation/wokwi/README.md) describes a standalone synthetic circuit. It labels output as simulation and prints telemetry to Serial Monitor; it does not send data to the clinical database. A public hosted Wokwi project URL has not been recorded.
 
-```text
-python scripts\trigger_demo_alert.py --scenario fall
-```
+## Connected demonstration
 
-Repeat with the other real Phase 2 rule paths:
+Use a disposable PostgreSQL/Firebase environment, disable the in-memory fallback, apply all nine migrations, provision the necessary accounts/devices, and start the outbox worker. Follow [deployment](backend/DEPLOYMENT.md) and the [watch guide](firmware/xiao_watch_prototype/README.md).
 
-```text
-python scripts\trigger_demo_alert.py --scenario hypertension
-python scripts\trigger_demo_alert.py --scenario pph
-```
+Do not enable public RTDB writes. The optional direct-Firebase watch transport is a latest-reading-only prototype path: it bypasses PostgreSQL history and clinical alerts. OpenAI chat and Twilio WhatsApp each require separate server-side configuration; their source code being present does not establish a working provider integration.
 
-Each command posts a new HTTP device event to `/api/v1/ingest/telemetry`. In
-`DEMO_IN_MEMORY=true`, that route uses the same `app.alerting.evaluate_alerts`
-threshold engine as the Postgres path; the dashboard polls the Flask API every
-two seconds and updates existing rows without reordering the patient list.
+## Submission link
 
-## When Supabase becomes reachable
-
-Set `DEMO_IN_MEMORY=false` in the ignored `.env`, then run:
-
-```text
-python scripts\apply_migrations.py
-python scripts\seed_demo.py
-```
-
-The same trigger script then uses the real Supabase-backed ingestion/outbox
-workflow.
-
-## Firebase note
-
-The supplied web Firebase config is in `.env`, but it is not a server credential.
-Secure server-to-RTDB delivery requires `FIREBASE_SERVICE_ACCOUNT_JSON` (or
-valid Google application-default credentials). Do **not** enable unauthenticated
-RTDB writes to work around this. Once a service account is provided, disable the
-in-memory fallback and the existing transactional outbox will project live
-vitals/alerts to Firebase RTDB.
-
-## Roadmap intentionally skipped for this prototype
-
-Twilio WhatsApp/SMS, Bhashini translation, feature-phone offline behavior,
-production OTP/password enforcement, animations, and non-essential edge cases.
+Add a verified hosted app, video, or presentation URL to the root README before submission. No public demo URL is claimed by these local instructions.
