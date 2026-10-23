@@ -99,6 +99,7 @@ captures/
 *.sqlite3
 *.sqlite3-*
 *.sql.gz
+*.dump
 /uploads/
 /backend/uploads/
 /backups/

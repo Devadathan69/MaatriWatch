@@ -1,26 +1,30 @@
 # Signed-in Android testing with persistent data
 
-The local phone-testing environment uses the normal patient application, Firebase email/password authentication, PostgreSQL, and server-side OpenAI. Video is disabled. This is a local development setup; it is not a cloud deployment.
+The phone-testing environment uses the normal patient application, Firebase email/password authentication, Supabase PostgreSQL, and server-side OpenAI. Video is disabled. The database is hosted in Supabase; the API and workers still run on the laptop.
 
 ## Configured services
 
-- PostgreSQL runs in Docker container `maatriwatch-phone-db`, bound only to `127.0.0.1:5433`. Its data lives in the named volume `maatriwatch-phone-pgdata`, independently of the API process. All migrations through `012` have been applied locally.
+- Supabase PostgreSQL uses its IPv4-compatible **Session pooler**, port `5432`, with TLS required. The working URI is stored only in ignored `backend/.env` and `backend/.env.supabase`. Migrations through `013` are applied. Firebase remains the identity provider; no Supabase Auth migration or client database key is needed.
+- All 29 app tables have row-level security enabled, with table and owned-sequence access revoked from public client roles. The backend database owner retains access; Firebase identities and patient/hospital authorization are enforced by the API. Future tables must receive equivalent restrictions before storing data.
 - The Firebase Android app matches package `org.maatriwatch.patient`. Public client settings are in ignored `patient_app/firebase-config.local.json`; Firebase Admin credentials and OpenAI remain only in ignored `backend/.env`.
 - `DEMO_MODE`, `DEMO_IN_MEMORY`, and `ALLOW_UNVERIFIED_PATIENT_DEMO` are false. The normal backend requires verified Firebase identity and an active linked PostgreSQL patient record. `DAILY_API_KEY` is empty.
 - The API runs on loopback port `8000`. The reminder and realtime outbox workers run separately. Local process IDs/logs are kept under ignored `output/`.
+- Each process reserves one database session, with a maximum of four connections per pool, to fit the small Session pooler's connection budget.
 - Existing Firebase Auth accounts and deployed RTDB rules were preserved. The deployed rules already include scoped patient/clinician access and the optional direct-device transport rules.
 
-The earlier Supabase endpoint rejected the saved host/project username. Its settings were preserved in ignored `backend/.env.supabase-before-phone`. The local database provides persistent phone testing while access to the correct cloud project is pending; it does not restore data from that project.
+The cloud database was backed up before migration in ignored `output/supabase-before-migrations-*.dump`. Its existing records were preserved. The dedicated synthetic phone-test accounts, patient profile, and feature records were copied into their own hospital, retaining their Firebase links and IDs.
+
+The earlier local Docker database remains available as a fallback: container `maatriwatch-phone-db`, volume `maatriwatch-phone-pgdata`, loopback port `5433`. Its working configuration is preserved in ignored `backend/.env.local-before-supabase`. Switching back requires restoring that local `DATABASE_URL` and restarting the services; changes made in Supabase are not automatically copied back. Docker is unnecessary for normal Supabase testing.
 
 ## Start or resume testing
 
-Start Docker Desktop, connect/unlock the Android phone, allow USB debugging, and run from the repository root:
+Connect/unlock the Android phone, allow USB debugging, and run from the repository root:
 
 ```powershell
 pwsh -File backend/scripts/start_phone_testing.ps1
 ```
 
-The helper starts the existing database, API, and workers, restores USB forwarding for connected authorized phones, and checks API readiness. It reuses recorded service processes instead of starting duplicate workers. Backend readiness now checks an actual database query rather than only the presence of a connection string.
+The helper starts the API and workers, restores USB forwarding for connected authorized phones, and checks readiness with an actual database query. It reuses recorded service processes instead of starting duplicate workers. Add `-Restart` after changing backend configuration to reload all three services. Docker is started only when the configuration selects the local fallback database.
 
 Install and run the normal app from `patient_app/`:
 
@@ -28,7 +32,7 @@ Install and run the normal app from `patient_app/`:
 flutter run --debug -t lib/main.dart -d DEVICE_ID --dart-define-from-file=firebase-config.local.json --no-pub
 ```
 
-Use `flutter devices` to find `DEVICE_ID`. The compiled debug APK is also available locally under `patient_app/build/app/outputs/flutter-apk/app-debug.apk`. Re-running the startup helper after reconnecting restores the USB route; keep the laptop, Docker, and services running during testing.
+Use `flutter devices` to find `DEVICE_ID`. The compiled debug APK is also available locally under `patient_app/build/app/outputs/flutter-apk/app-debug.apk`. Re-running the startup helper after reconnecting restores the USB route; keep the laptop, services, and internet connection running during testing. The database switch needs no change to the phone's API URL.
 
 ## Test sign-in
 
@@ -48,4 +52,4 @@ On 23 October 2026:
 - Firebase Admin authenticated successfully, email/password sign-in was enabled, the Android app was registered, and the configured normal Android APK built successfully.
 - The backend suite passed 83 tests. Final password sign-in on the physical phone and native push delivery still need device verification.
 
-Cloud Supabase access remains a separate follow-up: retrieve the complete session-pooler string from the intended project's **Connect** dialog rather than guessing its host/region. Update only the ignored local configuration, inspect the target schema, and apply missing migrations through the existing helper. Do not replace the working local database until the cloud connection is verified.
+On 24 October 2026, Supabase Session pooler connectivity was verified, migrations `010`–`013` applied, and the synthetic phone-test profiles/data copied without changing existing cloud records. Public API role access was denied in database checks. The API and both workers were switched to Supabase, and cloud-backed API read/write/persistence checks passed with Firebase token verification mocked only inside an isolated test process. The backend suite still passes 83 tests. Physical-phone password sign-in and native push delivery remain pending until the phone is reconnected.

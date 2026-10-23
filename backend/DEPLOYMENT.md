@@ -8,7 +8,7 @@ secrets; use the deployment platform's secret/environment-variable settings.
 - Python 3.11+
 - A managed PostgreSQL database (Supabase Postgres is supported)
 - A Firebase project with **Authentication** and **Realtime Database** enabled
-- Two deployment processes: one web API and one outbox worker
+- Three deployment processes: the web API, realtime outbox worker, and companion/reminder worker
 
 ## 2. Local verification
 
@@ -32,6 +32,23 @@ In a second terminal, with the same environment active:
 ```powershell
 python -m app.realtime_worker
 ```
+
+Run `python -m app.companion_worker` in a third terminal with the same environment.
+The [phone-testing helper](../docs/PHONE_TESTING.md) manages these three services
+on the configured Windows development laptop.
+
+For Supabase on an IPv4-only network, use the **Session pooler** connection
+from the project's Connect dialog, port `5432`, with `sslmode=require`.
+Keep its database password server-side. Firebase still handles sign-in; the
+phone talks to Flask and needs no Supabase client key. Each backend process
+reserves one database connection and can grow its pool to four; size hosted
+process counts to fit the database's session limit.
+
+The migration helper applies missing schema phases through `012`, then
+reasserts `013` in the same transaction. Migration `013` enables row-level
+security and revokes public client-role access to app tables and their owned
+sequences, while preserving backend owner access. New app tables need the
+same restrictions. See [Supabase's access-control guidance](https://supabase.com/docs/guides/api/securing-your-api).
 
 `python scripts\seed_demo.py` is optional and must only be used with a
 non-production database.

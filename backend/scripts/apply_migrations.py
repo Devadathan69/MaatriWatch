@@ -1,8 +1,9 @@
 """Apply only missing MaatriWatch schema phases to the configured Postgres DB.
 
 This is intentionally small for the hackathon demo: it inspects the schema,
-then applies 001 through 012 in order as needed. It never prints the
-connection URL or values from .env.
+then applies 001 through 012 in order as needed and reasserts the idempotent
+013 server-only access rules. All changes commit together, or roll back on
+failure. It never prints the connection URL or values from .env.
 """
 
 from __future__ import annotations
@@ -41,8 +42,7 @@ def apply_file(connection, filename: str) -> None:
     sql = (ROOT_DIR / "db" / "migrations" / filename).read_text(encoding="utf-8")
     with connection.cursor() as cursor:
         cursor.execute(sql)
-    connection.commit()
-    print(f"Applied {filename}")
+    print(f"Prepared {filename}")
 
 
 def main() -> int:
@@ -100,6 +100,7 @@ def main() -> int:
                 push_missing = not table_exists(cursor, "patient_push_devices")
             if push_missing:
                 apply_file(connection, "012_reminder_push_devices.sql")
+            apply_file(connection, "013_server_only_tables.sql")
     except OperationalError:
         print("Could not connect to Postgres. Check DATABASE_URL without printing it.", file=sys.stderr)
         return 1

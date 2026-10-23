@@ -2,7 +2,7 @@
 
 The source code is implemented. This document separates the local synthetic demo from enabling persistent/provider-backed features. Clinical validation and operational care processes remain separate requirements.
 
-For the configured local PostgreSQL environment, normal Firebase sign-in build, and repeatable USB/service startup, see [signed-in phone testing](PHONE_TESTING.md). The credential-free fixture below remains a separate option.
+For the configured Supabase database, normal Firebase sign-in build, and repeatable laptop/USB service startup, see [signed-in phone testing](PHONE_TESTING.md). The credential-free fixture below remains a separate option.
 
 ## Local synthetic demonstration
 
@@ -44,7 +44,9 @@ With a backed-up, approved development/staging database configured, run from `ba
 ..\.venv\Scripts\python.exe scripts/apply_migrations.py
 ```
 
-The helper now applies migrations through `012`: `010` adds companion records, `011` adds slots/bookings, and `012` adds private FCM device registrations. All twelve migrations were subsequently applied to the local PostgreSQL phone-test database; the existing remote Supabase database was not migrated. Booking uses row locks and a unique active-slot index. Normal booking and storage were exercised against local PostgreSQL; simultaneous-booking unit tests still use the memory adapter.
+The helper applies missing migrations through `012` and reasserts idempotent `013`: `010` adds companion records, `011` adds slots/bookings, `012` adds private FCM device registrations, and `013` enables row-level security and revokes public client-role grants on the 29 app tables and their owned sequences. Pending migrations commit together or roll back on error. Backend access uses the database owner; Firebase and API authorization remain required. Future application tables need equivalent restrictions before storing data.
+
+On 24 October 2026, the existing Supabase database was backed up and upgraded through `013` using its TLS Session pooler. Existing cloud records were preserved and isolated synthetic phone-test profiles/data added. The API and workers use this cloud database, while the previous local database/configuration remain available as a fallback. Booking uses row locks and a unique active-slot index. Normal booking/storage were exercised against PostgreSQL; simultaneous-booking unit tests still use the memory adapter.
 
 Run three processes in the hosted environment:
 
@@ -82,6 +84,6 @@ The web call frame and Android WebView use pinned Daily JS `0.94.0`. Camera/micr
 
 Run `python scripts/run_tests.py` from `backend/`, then `flutter analyze` and `flutter test` in each Flutter app. These tests use synthetic data and mocked providers. Actual database migrations/concurrent transactions, model extraction/transcription quality (especially Malayalam), native notification delivery, and a real two-party video call require staging verification. The report/nutrition policy is documented in [REPORT_POLICY.md](REPORT_POLICY.md).
 
-On 23 October 2026, the four-tab Android demo was installed on a connected phone over USB. With explicit OpenAI opt-in, live synthetic API checks passed chat, symptom extraction, text/PDF report extraction, and English audio transcription. The backend suite now contains 81 passing tests, including default credential isolation and OpenAI-only opt-in checks. These small connection/format checks are not clinical or multilingual accuracy evaluations.
+On 23 October 2026, the four-tab Android demo was installed on a connected phone over USB. With explicit OpenAI opt-in, live synthetic API checks passed chat, symptom extraction, text/PDF report extraction, and English audio transcription. The backend suite now contains 83 passing tests, including default credential isolation, OpenAI-only opt-in, and database readiness checks. These small connection/format checks are not clinical or multilingual accuracy evaluations.
 
 Before clinical use, obtain governance approval for comparisons/response ownership, validate models and hardware with representative data, review privacy/retention/access controls, and have a clinician/dietitian review personalised plans. No medical accuracy, nutrient adequacy, regulated-device status, or clinical outcome is established by software tests.

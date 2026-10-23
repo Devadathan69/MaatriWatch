@@ -11,7 +11,12 @@ from psycopg_pool import ConnectionPool
 def init_db(app):
     database_url = app.config.get("DATABASE_URL")
     app.extensions["db_pool"] = (
-        ConnectionPool(conninfo=database_url, kwargs={"row_factory": dict_row}, open=False)
+        # API and workers each own a pool. Reserve one idle session per process
+        # so small hosted Session poolers still have room for all services.
+        ConnectionPool(
+            conninfo=database_url, kwargs={"row_factory": dict_row},
+            min_size=1, max_size=4, open=False,
+        )
         if database_url
         else None
     )
