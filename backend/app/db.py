@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from flask import abort, current_app, g
+from psycopg import Error as DatabaseError
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
@@ -24,6 +25,21 @@ def get_db():
         pool.open(wait=True)
         g.db_connection = pool.getconn()
     return g.db_connection
+
+
+def database_ready() -> bool:
+    """Check an actual connection without exposing connection/error details."""
+    pool = current_app.extensions.get("db_pool")
+    if not pool:
+        return False
+    try:
+        pool.open(wait=True, timeout=3)
+        with pool.connection(timeout=3) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                return cursor.fetchone() is not None
+    except DatabaseError:
+        return False
 
 
 def close_db(_exception=None):

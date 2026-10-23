@@ -2,6 +2,8 @@
 
 The source code is implemented. This document separates the local synthetic demo from enabling persistent/provider-backed features. Clinical validation and operational care processes remain separate requirements.
 
+For the configured local PostgreSQL environment, normal Firebase sign-in build, and repeatable USB/service startup, see [signed-in phone testing](PHONE_TESTING.md). The credential-free fixture below remains a separate option.
+
 ## Local synthetic demonstration
 
 From the repository root:
@@ -42,7 +44,7 @@ With a backed-up, approved development/staging database configured, run from `ba
 ..\.venv\Scripts\python.exe scripts/apply_migrations.py
 ```
 
-The helper now applies migrations through `012`: `010` adds companion records, `011` adds slots/bookings, and `012` adds private FCM device registrations. The new migrations were not applied to the existing remote database by this coding task. Booking uses row locks and a unique active-slot index; local concurrent tests use the isolated memory adapter, not an actual PostgreSQL service.
+The helper now applies migrations through `012`: `010` adds companion records, `011` adds slots/bookings, and `012` adds private FCM device registrations. All twelve migrations were subsequently applied to the local PostgreSQL phone-test database; the existing remote Supabase database was not migrated. Booking uses row locks and a unique active-slot index. Normal booking and storage were exercised against local PostgreSQL; simultaneous-booking unit tests still use the memory adapter.
 
 Run three processes in the hosted environment:
 

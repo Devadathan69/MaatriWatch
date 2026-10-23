@@ -84,3 +84,7 @@ After implementation, replace baseline-only wording with a dated distinction bet
 | Speak Your Concern | `dfa1db7` |
 | Reports and nutrition | `582a0fa` |
 | Consultation and reminder delivery | This phase-4 commit |
+
+## Local phone setup follow-up
+
+The normal Firebase Android application was registered and built after phase delivery. A local persistent PostgreSQL database now has all twelve migrations; synthetic API/storage checks and a database-restart persistence check passed. Firebase Admin credentials were verified, and the reminder/outbox workers are configured. The backend suite now passes 83 tests. The original Supabase endpoint still needs the intended project's correct connection settings. See [phone testing and remaining device checks](PHONE_TESTING.md); physical-phone password sign-in and native push delivery remain pending until the phone is reconnected.

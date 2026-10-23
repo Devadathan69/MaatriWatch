@@ -12,7 +12,7 @@ from .ai_chat import ai_chat_bp
 from .auth import auth_bp
 from .clinician import clinician_bp
 from .config import Config
-from .db import close_db, init_db
+from .db import close_db, init_db, database_ready
 from .firebase import init_firebase
 from .ingestion import ingestion_bp
 from .patient import patient_bp
@@ -86,7 +86,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.get("/readyz")
     def readyz():
         missing = []
-        if not app.config.get("DATABASE_URL"):
+        if not app.config.get("DATABASE_URL") or not database_ready():
             missing.append("database")
         if not (app.config.get("FIREBASE_AUTH_READY") or app.config.get("DEMO_MODE")):
             missing.append("firebase_auth")
