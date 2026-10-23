@@ -11,13 +11,15 @@ from .consultations import reconcile_appointments
 
 
 def tick():
+    from .guardians import deliver_guardian_notifications
+    guardian_count = deliver_guardian_notifications()
     reconcile_appointments()
     with get_db().cursor() as cur:
         cur.execute("""SELECT DISTINCT p.id,p.hospital_id FROM patients p JOIN companion_records r ON r.patient_id=p.id
             WHERE p.is_active=true AND (r.kind='concern' OR (r.kind='notification' AND r.data->>'push_status'='pending') OR
                 (r.kind='reminder' AND r.data->>'status'='active' AND (r.data->>'due_at')::timestamptz <= now()))""")
         patients = cur.fetchall()
-    return sum(deliver_due(PostgresRecords(p)) + finalize_previous_month(PostgresRecords(p)) for p in patients)
+    return guardian_count + sum(deliver_due(PostgresRecords(p)) + finalize_previous_month(PostgresRecords(p)) for p in patients)
 
 
 def main():

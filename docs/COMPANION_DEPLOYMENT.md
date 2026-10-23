@@ -20,7 +20,7 @@ flutter pub get
 flutter run -t lib/companion_demo.dart -d chrome --web-hostname localhost --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
-The banner identifies synthetic data. By default the fixture server never loads `.env`, real database/provider credentials, or patient data. Companion storage is process-local in this mode and resets on restart. It seeds a report, concern, food plan, availability, and a booking. Unconfigured AI/video calls produce explicit errors.
+The banner identifies synthetic data. By default the fixture server never loads `.env`, real database/provider credentials, or patient data. Companion storage is process-local in this mode and resets on restart. It seeds a report, concern, food preferences, availability, and a booking. Food guidance requires explicit OpenAI opt-in. Unconfigured AI/video calls produce explicit errors.
 
 To test real AI replies, concern extraction/transcription, and report extraction against synthetic data, explicitly enable OpenAI:
 
@@ -44,7 +44,7 @@ With a backed-up, approved development/staging database configured, run from `ba
 ..\.venv\Scripts\python.exe scripts/apply_migrations.py
 ```
 
-The helper applies missing migrations through `012` and reasserts idempotent `013`: `010` adds companion records, `011` adds slots/bookings, `012` adds private FCM device registrations, and `013` enables row-level security and revokes public client-role grants on the 29 app tables and their owned sequences. Pending migrations commit together or roll back on error. Backend access uses the database owner; Firebase and API authorization remain required. Future application tables need equivalent restrictions before storing data.
+The helper applies missing migrations through `014` and reasserts idempotent `013`: `010` adds companion records, `011` adds slots/bookings, `012` adds private FCM device registrations, and `013` restricts the original 29 app tables and their owned sequences. Migration `014` adds four private guardian tables with the same server-only restrictions. Pending migrations commit together or roll back on error. Backend access uses the database owner; Firebase and API authorization remain required. Future application tables need equivalent restrictions before storing data.
 
 On 24 October 2026, the existing Supabase database was backed up and upgraded through `013` using its TLS Session pooler. Existing cloud records were preserved and isolated synthetic phone-test profiles/data added. The API and workers use this cloud database, while the previous local database/configuration remain available as a fallback. Booking uses row locks and a unique active-slot index. Normal booking/storage were exercised against PostgreSQL; simultaneous-booking unit tests still use the memory adapter.
 
@@ -87,3 +87,5 @@ Run `python scripts/run_tests.py` from `backend/`, then `flutter analyze` and `f
 On 23 October 2026, the four-tab Android demo was installed on a connected phone over USB. With explicit OpenAI opt-in, live synthetic API checks passed chat, symptom extraction, text/PDF report extraction, and English audio transcription. The backend suite now contains 83 passing tests, including default credential isolation, OpenAI-only opt-in, and database readiness checks. These small connection/format checks are not clinical or multilingual accuracy evaluations.
 
 Before clinical use, obtain governance approval for comparisons/response ownership, validate models and hardware with representative data, review privacy/retention/access controls, and have a clinician/dietitian review personalised plans. No medical accuracy, nutrient adequacy, regulated-device status, or clinical outcome is established by software tests.
+
+The 24 October patient-feedback update adds guardian app notifications, separate manual/audio concern paths, brief four-section monthly AI reports, event/advance reminders, and questionnaire-first AI food ideas. The current backend suite passes 92 tests. See [current phone-testing steps](PHONE_TESTING.md) for guardian linking, upload limits and remaining device checks.

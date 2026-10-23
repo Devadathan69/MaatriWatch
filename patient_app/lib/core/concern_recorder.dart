@@ -12,7 +12,7 @@ class ConcernRecorder {
   Future<void> start(void Function() onLimit) async {
     if (!await _recorder.hasPermission()) {
       throw StateError(
-          'Microphone access was not allowed. You can type or upload audio instead.');
+          'Microphone access was not allowed. You can enter symptoms manually instead.');
     }
     final stream = await _recorder.startStream(const RecordConfig(
         encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1));

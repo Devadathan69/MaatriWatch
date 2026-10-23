@@ -197,16 +197,28 @@ def next_occurrence(due, recurrence, timezone_name, now):
 def create_reminder():
     repo = records(actor_patient())
     values = body()
-    due = aware_time(values.get('due_at'))
+    event = None
+    lead = values.get('lead_minutes', 0)
+    if values.get('event_at') is not None:
+        event = aware_time(values['event_at'])
+        if isinstance(lead, bool) or not isinstance(lead, int) or lead not in (0, 60, 1440, 4320, 10080):
+            abort(400, description='Choose when to remind you: at the event, an hour, a day, three days, or a week before')
+        due = event - timedelta(minutes=lead)
+    else:
+        due = aware_time(values.get('due_at'))
     if due <= datetime.now(timezone.utc):
         abort(400, description='Choose a future reminder time')
     recurrence = values.get('recurrence', 'none')
     if recurrence not in ('none', 'daily', 'weekly'):
         abort(400, description='Unsupported recurrence')
+    if event and recurrence != 'none':
+        abort(400, description='Event reminders are one-time reminders. Add another event for a different date.')
     if len(repo.list('reminder', 201)) >= 200:
         abort(409, description='Reminder limit reached')
     data = {'title': text(values.get('title'), 'title', 160), 'due_at': due.isoformat(),
             'recurrence': recurrence, 'timezone': preferences(repo)['timezone'], 'status': 'active'}
+    if event:
+        data.update(event_at=event.isoformat(), lead_minutes=lead)
     return jsonify({'reminder': repo.put('reminder', data)}), 201
 
 
@@ -223,7 +235,7 @@ def change_reminder(identifier):
     if action in ('done', 'cancel'):
         data['status'] = 'completed' if action == 'done' else 'cancelled'
     elif action == 'snooze':
-        data.update(due_at=(datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(), status='active')
+        data.update(due_at=(datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(), status='active', snoozed=True)
     else:
         abort(400, description='action must be done, cancel, or snooze')
     return jsonify({'reminder': repo.put('reminder', data, identifier)})

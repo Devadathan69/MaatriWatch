@@ -1,4 +1,4 @@
-# Report comparison and meal-planning policy
+# Report comparison and AI food-guidance policy
 
 Version: `pregnancy-report-2026-10-23-v1`. This is an auditable prototype comparison policy, not a diagnostic protocol approved for a clinical deployment.
 
@@ -21,14 +21,14 @@ Each extracted reading includes its printed label, numeric value or unreadable m
 
 These glucose decision limits are not treatment targets. “Below diagnostic threshold” is not an all-clear and does not exclude other problems. Missing units, an unconfirmed protocol, duplicate analyte values/dates, postpartum status, or absent ranges produce an unresolved result. Multiple dates need separate confirmed reports.
 
-A haemoglobin value below 7 g/dL flags prompt clinical assessment and blocks meal-plan generation. The system never substitutes food suggestions for treatment or changes medications. Source thresholds and their clinical suitability need local approval before patient deployment.
+A haemoglobin value below 7 g/dL flags prompt clinical assessment and blocks food-guidance generation. The system never substitutes food suggestions for treatment or changes medications. Source thresholds and their clinical suitability need local approval before patient deployment.
 
 ## Nutrition design
 
-Nourish uses an original, explicit food catalog with ingredients, allergens, dietary categories, illustrative household portions, and cooking guidance. It personalises a seven-day draft to confirmed food preferences and supported report flags. It does not ask a language model to invent nutrient targets, hidden ingredients, or a therapeutic prescription.
+Updated 24 October 2026: Nourish asks about dietary pattern, sweet tastes, morning sickness, appetite, spice, favourite foods, exclusions, allergies and care-team instructions before food guidance is generated. Unknown allergies require dietitian review.
 
-Unknown allergies and restrictions need dietitian input. The catalog cannot guarantee cross-contact prevention or suitability for every disease/medication. Portions are examples; calories, protein adequacy, micronutrient totals, gestational weight goals, lactation needs, and treatment-specific targets have not been clinically validated. Postpartum reports are not interpreted using pregnancy cutoffs; any food draft still needs individual review.
+With explicit processing consent, the AI considers the selected confirmed report and questionnaire, selects food IDs from a bounded ingredient/allergen catalog, and explains suggestions and items to limit or avoid. Server checks reject excluded foods, unsafe recommendations, unknown or duplicate food IDs and invented report references. There is no automatic weekly plan, calorie target, supplement recommendation or treatment promise. An unavailable provider produces a visible error rather than a static fallback plan.
 
-Patient-created plans are drafts. A hospital-scoped clinician must review and leave a note to mark a plan approved. Swapping an approved meal returns it to draft. Changing allergy/preferences invalidates the current recommendation. Patient API calls cannot approve plans.
+The catalog cannot guarantee cross-contact prevention or suitability for every condition or medication. Guidance does not establish nutrient adequacy or replace clinician/dietitian advice. Pregnancy comparisons are not applied to postpartum reports. Changing preferences invalidates existing advice; selecting a different report requires fresh analysis. Patients cannot approve their own guidance. Previous weekly-plan records remain stored as history but are not presented as current food guidance.
 
-Food-safety references: [FDA pregnancy food safety](https://www.fda.gov/food/people-risk-foodborne-illness/food-safety-moms-be), [pregnancy and breastfeeding nutrition](https://health.gov/sites/default/files/2021-12/DGA_Pregnancy_FactSheet-508.pdf). UI planning inspiration: [Eat This Much](https://www.eatthismuch.com/). The meal illustrations are original code-drawn vectors; no third-party app assets or patient images are copied.
+References: [NHS nausea and food-tolerance guidance](https://www.nhs.uk/pregnancy/common-symptoms/vomiting-and-morning-sickness/), [FDA pregnancy food safety](https://www.fda.gov/food/people-risk-foodborne-illness/food-safety-moms-be-glance), and [pregnancy and breastfeeding nutrition](https://health.gov/sites/default/files/2021-12/DGA_Pregnancy_FactSheet-508.pdf). The original code-drawn food illustrations are retained; no third-party app assets or patient images are copied.

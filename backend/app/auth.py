@@ -11,6 +11,30 @@ from .db import get_db
 from .firebase import sync_clinician_entitlements
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def verified_firebase_identity():
+    """Authenticate an identity before it has been linked to an app role."""
+    if not current_app.config.get("FIREBASE_AUTH_READY"):
+        abort(503, description="Firebase authentication is unavailable")
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        abort(401, description="A Firebase bearer token is required")
+    try:
+        claims = firebase_auth.verify_id_token(token, check_revoked=True)
+    except Exception:
+        abort(401, description="The Firebase token is invalid or expired")
+    if claims.get("email_verified") is not True or not claims.get("email"):
+        abort(403, description="Verify your email before linking a guardian account")
+    return claims
+
+
+def require_verified_identity(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        g.firebase_claims = verified_firebase_identity()
+        return view(*args, **kwargs)
+    return wrapped
 _DEMO_ROLE_UIDS = {
     "clinician": "demo-doctor",
     "doctor": "demo-doctor",

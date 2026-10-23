@@ -37,7 +37,7 @@ def appointment_reminder(patient, appointment):
         repo.put(
             "reminder",
             {
-                "title": "Your scheduled video visit is coming up",
+                "title": "Your consultation is coming up",
                 "due_at": due.isoformat(),
                 "recurrence": "none",
                 "timezone": "UTC",

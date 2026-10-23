@@ -107,7 +107,7 @@ class ApiClient {
   }) async {
     final body = <String, dynamic>{
       'action': action,
-      if (note != null) 'note': note
+      'note': ?note
     };
     final json = await _request(
       'PATCH',
@@ -160,7 +160,7 @@ class ApiClient {
       '/hospitals/$hospitalId/patients/$patientId/care-messages',
       body: <String, dynamic>{
         'body': body,
-        if (inReplyTo != null) 'in_reply_to': inReplyTo,
+        'in_reply_to': ?inReplyTo,
       },
     );
     return CareMessage.fromJson(asMap(json['message']));
@@ -197,7 +197,7 @@ class ApiClient {
             ..headers.addAll(<String, String>{
               'Accept': 'application/json',
               if (token != null) 'Authorization': 'Bearer $token',
-              if (demoRole != null) 'X-Demo-Role': demoRole!,
+              'X-Demo-Role': ?demoRole,
               if (body != null) 'Content-Type': 'application/json',
             })
             ..body = body == null ? '' : jsonEncode(body),

@@ -24,6 +24,7 @@ from .reports import reports_bp
 from .nutrition import nutrition_bp
 from .consultations import consultations_bp
 from .reminder_push import push_bp
+from .guardians import guardians_bp
 from .outbox import deliver_pending_outbox
 
 
@@ -53,6 +54,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(nutrition_bp, url_prefix="/api/v1")
     app.register_blueprint(consultations_bp, url_prefix="/api/v1")
     app.register_blueprint(push_bp, url_prefix="/api/v1")
+    app.register_blueprint(guardians_bp, url_prefix="/api/v1")
 
     @app.before_request
     def protect_ingestion_payload_size():
@@ -116,7 +118,13 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.errorhandler(413)
     def payload_too_large(_error):
-        return jsonify({"error": "payload_too_large", "message": "The telemetry payload is too large"}), 413
+        if request.path in {"/api/v1/ingest/vitals", "/api/v1/ingest/telemetry"}:
+            message = "The telemetry payload is too large"
+        elif request.path.endswith("/concerns/transcribe"):
+            message = "This recording is too large. Record a shorter concern (up to 80 seconds)."
+        else:
+            message = "This upload is too large. Choose a smaller file."
+        return jsonify({"error": "payload_too_large", "message": message}), 413
 
     @app.errorhandler(429)
     def rate_limited(error):

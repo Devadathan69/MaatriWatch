@@ -69,27 +69,48 @@ class ReportAndNutritionTests(unittest.TestCase):
         self.assertEqual(bad.status_code,400)
         self.assertEqual(self.client.post('/api/v1/patient/reports/analyses',json={'readings':[reading()]},headers=self.headers).status_code,400)
 
-    def test_meal_plan_allergens_swaps_review_and_preference_invalidation(self):
+    def food_preferences(self):
+        return {'diet':'vegan','allergens':['milk','wheat','gluten'],'dislikes':[],
+            'allergies_confirmed':True,'sweet_preference':'sometimes','morning_sickness':True,
+            'appetite':'low','spice_preference':'mild','favourite_foods':['idli']}
+
+    def food_response(self):
+        return {'overview':'Food ideas based on your confirmed report and preferences.',
+            'foods':[{'food_id':key,'advice':advice,'reason':'A preference-aware food idea to discuss with your care team.','report_analytes':[]}
+                for key,advice in [('idli','suggest'),('fruit','suggest'),('khichdi','suggest'),('sugary_drinks','limit')]],'discussion_points':[]}
+
+    @patch('app.food_guidance.ai_provider.response')
+    def test_ai_food_guidance_requires_questionnaire_consent_and_invalidates_changed_preferences(self,provider):
         report=self.save_report()
-        prefs={'diet':'vegan','allergens':['milk','wheat','gluten'],'dislikes':[],'allergies_confirmed':True}
-        self.assertEqual(self.client.put('/api/v1/patient/nutrition',json=prefs,headers=self.headers).status_code,200)
-        result=self.client.post('/api/v1/patient/nutrition',json={'report_id':report['id']},headers=self.headers)
+        endpoint='/api/v1/patient/nutrition'
+        self.assertEqual(self.client.post(endpoint,json={'report_id':report['id'],'processing_consent':True},headers=self.headers).status_code,409)
+        prefs=self.food_preferences()
+        self.assertEqual(self.client.put(endpoint,json=prefs,headers=self.headers).status_code,200)
+        self.assertEqual(self.client.post(endpoint,json={'report_id':report['id']},headers=self.headers).status_code,400)
+        provider.return_value=self.food_response()
+        result=self.client.post(endpoint,json={'report_id':report['id'],'processing_consent':True},headers=self.headers)
         self.assertEqual(result.status_code,201)
         row=result.json['plan']
-        self.assertEqual(len(row['data']['days']),7)
-        for day in row['data']['days']:
-            for meal in day['meals']:
-                self.assertFalse(set(meal['allergens'])&set(prefs['allergens']))
-                self.assertEqual(meal['diet'],'vegan')
-        bad=self.client.patch('/api/v1/patient/nutrition/plans/'+row['id'],json={'day':0,'slot':'lunch','swap_to':'roti_dal'},headers=self.headers)
-        self.assertEqual(bad.status_code,400)
+        self.assertEqual(row['data']['format'],'food_guidance_v1')
+        self.assertNotIn('days',row['data'])
+        self.assertEqual(len(row['data']['foods']),4)
+        self.assertIn('morning_sickness',str(provider.call_args))
         doctor=f'/api/v1/hospitals/{DEMO_HOSPITAL_ID}/patients/{_demo_id("patient",1)}/nutrition/{row["id"]}'
-        self.assertEqual(self.client.patch(doctor,json={'action':'approve','note':'Reviewed for prototype presentation only.'},headers=self.headers).status_code,403)
-        approved=self.client.patch(doctor,json={'action':'approve','note':'Reviewed ingredients and individual portions.'},headers={'X-Demo-Role':'doctor'})
-        self.assertEqual(approved.status_code,200)
-        self.assertEqual(approved.json['plan']['data']['status'],'clinician_approved')
-        swapped=self.client.patch('/api/v1/patient/nutrition/plans/'+row['id'],json={'day':0,'slot':'breakfast','swap_to':'dosa'},headers=self.headers)
-        self.assertEqual(swapped.json['plan']['data']['status'],'draft_for_clinician_review')
-        prefs['allergens'].append('sesame')
-        self.client.put('/api/v1/patient/nutrition',json=prefs,headers=self.headers)
-        self.assertTrue(self.client.get('/api/v1/patient/nutrition',headers=self.headers).json['requires_refresh'])
+        self.assertEqual(self.client.patch(doctor,json={'action':'approve','note':'Reviewed food suggestions.'},headers=self.headers).status_code,403)
+        self.assertEqual(self.client.patch(doctor,json={'action':'approve','note':'Reviewed food suggestions.'},headers={'X-Demo-Role':'doctor'}).status_code,200)
+        prefs['sweet_preference']='no'
+        self.client.put(endpoint,json=prefs,headers=self.headers)
+        self.assertTrue(self.client.get(endpoint,headers=self.headers).json['requires_refresh'])
+
+    @patch('app.food_guidance.ai_provider.response')
+    def test_ai_cannot_suggest_excluded_or_unsafe_foods_or_unknown_report_results(self,provider):
+        report=self.save_report()
+        endpoint='/api/v1/patient/nutrition'
+        self.client.put(endpoint,json=self.food_preferences(),headers=self.headers)
+        for food_id in ['roti_paneer','alcohol','unpasteurised']:
+            value=self.food_response(); value['foods'][0]['food_id']=food_id; provider.return_value=value
+            result=self.client.post(endpoint,json={'report_id':report['id'],'processing_consent':True},headers=self.headers)
+            self.assertEqual(result.status_code,502)
+        value=self.food_response();value['foods'][0]['report_analytes']=['invented_test'];provider.return_value=value
+        self.assertEqual(self.client.post(endpoint,json={'report_id':report['id'],'processing_consent':True},headers=self.headers).status_code,502)
+        self.assertIsNone(self.client.get(endpoint,headers=self.headers).json['plan'])

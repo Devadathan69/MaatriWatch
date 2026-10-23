@@ -5,6 +5,7 @@ import '../../core/patient_realtime.dart';
 import '../../core/patient_api.dart';
 import '../../core/device_reminders.dart';
 import '../patient/patient_home.dart';
+import '../patient/guardians_page.dart';
 
 class PatientAuthGate extends StatelessWidget {
   const PatientAuthGate({
@@ -22,25 +23,81 @@ class PatientAuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => StreamBuilder<User?>(
-        stream: auth.userChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const _ProgressScreen();
-          }
-          final user = snapshot.data;
-          if (user == null) {
-            return PatientSignInPage(auth: auth);
-          }
-          if (!user.emailVerified && !allowUnverifiedEmail) {
-            return _EmailVerificationPage(auth: auth, user: user);
-          }
-          return PatientHome(
-            onSignOut: _signOut,
-            onAccessDenied: _signOut,
-            liveVitals: FirebasePatientLiveVitalsSource(),
-          );
-        },
+    stream: auth.userChanges(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const _ProgressScreen();
+      }
+      final user = snapshot.data;
+      if (user == null) {
+        return PatientSignInPage(auth: auth);
+      }
+      if (!user.emailVerified && !allowUnverifiedEmail) {
+        return _EmailVerificationPage(auth: auth, user: user);
+      }
+      return _AccountHome(key: ValueKey(user.uid), onSignOut: _signOut);
+    },
+  );
+}
+
+class _AccountHome extends StatefulWidget {
+  const _AccountHome({super.key, required this.onSignOut});
+  final Future<void> Function() onSignOut;
+  @override
+  State<_AccountHome> createState() => _AccountHomeState();
+}
+
+class _AccountHomeState extends State<_AccountHome> {
+  final _api = PatientApi();
+  late Future<Map<String, dynamic>> _access;
+  @override
+  void initState() {
+    super.initState();
+    _access = _api.accountAccess();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+    future: _access,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const _ProgressScreen();
+      }
+      if (snapshot.hasError) {
+        return Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(snapshot.error.toString()),
+                  FilledButton(
+                    onPressed: () =>
+                        setState(() => _access = _api.accountAccess()),
+                    child: const Text('Try again'),
+                  ),
+                  TextButton(
+                    onPressed: widget.onSignOut,
+                    child: const Text('Sign out'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+      if (snapshot.data?['patient'] != true) {
+        return GuardianHome(api: _api, onSignOut: widget.onSignOut);
+      }
+      return PatientHome(
+        api: _api,
+        onSignOut: widget.onSignOut,
+        onAccessDenied: widget.onSignOut,
+        liveVitals: FirebasePatientLiveVitalsSource(),
       );
+    },
+  );
 }
 
 class PatientSignInPage extends StatefulWidget {
@@ -58,6 +115,7 @@ class _PatientSignInPageState extends State<PatientSignInPage> {
   final _password = TextEditingController();
   bool _submitting = false;
   bool _obscurePassword = true;
+  bool _guardian = false, _create = false;
   String? _error;
 
   @override
@@ -74,10 +132,18 @@ class _PatientSignInPageState extends State<PatientSignInPage> {
       _error = null;
     });
     try {
-      await widget.auth.signInWithEmailAndPassword(
-        email: _email.text.trim(),
-        password: _password.text,
-      );
+      if (_guardian && _create) {
+        final credential = await widget.auth.createUserWithEmailAndPassword(
+          email: _email.text.trim(),
+          password: _password.text,
+        );
+        await credential.user?.sendEmailVerification();
+      } else {
+        await widget.auth.signInWithEmailAndPassword(
+          email: _email.text.trim(),
+          password: _password.text,
+        );
+      }
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
       setState(() => _error = _friendlyAuthError(error));
@@ -89,8 +155,10 @@ class _PatientSignInPageState extends State<PatientSignInPage> {
   Future<void> _resetPassword() async {
     final email = _email.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error =
-          'Enter the email address linked to your MaatriWatch account first.');
+      setState(
+        () => _error =
+            'Enter the email address linked to your MaatriWatch account first.',
+      );
       return;
     }
     try {
@@ -98,102 +166,155 @@ class _PatientSignInPageState extends State<PatientSignInPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('If this account exists, a reset link has been sent.')),
+            content: Text(
+              'If this account exists, a reset link has been sent.',
+            ),
+          ),
         );
       }
     } on FirebaseAuthException catch (_) {
       if (mounted) {
-        setState(() => _error =
-            'We could not start password reset. Please try again or contact your care team.');
+        setState(
+          () => _error =
+              'We could not start password reset. Please try again or contact your care team.',
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Icon(Icons.favorite_rounded,
-                          size: 48, color: Color(0xff245568)),
-                      const SizedBox(height: 20),
-                      Text('Welcome to MaatriWatch',
-                          style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 8),
-                      const Text(
-                          'Sign in with the account provided by your care team.'),
-                      const SizedBox(height: 28),
-                      TextFormField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [
-                          AutofillHints.username,
-                          AutofillHints.email
-                        ],
-                        decoration:
-                            const InputDecoration(labelText: 'Email address'),
-                        validator: (value) =>
-                            value != null && value.trim().contains('@')
-                                ? null
-                                : 'Enter a valid email address.',
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _password,
-                        obscureText: _obscurePassword,
-                        autofillHints: const [AutofillHints.password],
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          suffixIcon: IconButton(
-                            tooltip: _obscurePassword
-                                ? 'Show password'
-                                : 'Hide password',
-                            onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword),
-                            icon: Icon(_obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined),
-                          ),
-                        ),
-                        validator: (value) => value != null && value.isNotEmpty
-                            ? null
-                            : 'Enter your password.',
-                        onFieldSubmitted: (_) => _signIn(),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 14),
-                        _Message(text: _error!),
-                      ],
-                      const SizedBox(height: 20),
-                      FilledButton(
-                        onPressed: _submitting ? null : _signIn,
-                        child: Text(_submitting ? 'Signing in…' : 'Sign in'),
-                      ),
-                      TextButton(
-                          onPressed: _submitting ? null : _resetPassword,
-                          child: const Text('Forgot password?')),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Do not share your password. If you have not received an invitation, contact your hospital care team.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    Icons.favorite_rounded,
+                    size: 48,
+                    color: Color(0xff245568),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Welcome to MaatriWatch',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _guardian
+                        ? 'Sign in or create your guardian account, then link using the patient’s private code.'
+                        : 'Sign in with the account provided by your care team.',
+                  ),
+                  const SizedBox(height: 28),
+                  TextFormField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [
+                      AutofillHints.username,
+                      AutofillHints.email,
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
+                    ),
+                    validator: (value) =>
+                        value != null && value.trim().contains('@')
+                        ? null
+                        : 'Enter a valid email address.',
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _password,
+                    obscureText: _obscurePassword,
+                    autofillHints: const [AutofillHints.password],
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      suffixIcon: IconButton(
+                        tooltip: _obscurePassword
+                            ? 'Show password'
+                            : 'Hide password',
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                      ),
+                    ),
+                    validator: (value) => value != null && value.isNotEmpty
+                        ? null
+                        : 'Enter your password.',
+                    onFieldSubmitted: (_) => _signIn(),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 14),
+                    _Message(text: _error!),
+                  ],
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: _submitting ? null : _signIn,
+                    child: Text(
+                      _submitting
+                          ? 'Please wait…'
+                          : _guardian && _create
+                          ? 'Create guardian account'
+                          : 'Sign in',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _submitting ? null : _resetPassword,
+                    child: const Text('Forgot password?'),
+                  ),
+                  if (_guardian)
+                    TextButton(
+                      onPressed: _submitting
+                          ? null
+                          : () => setState(() => _create = !_create),
+                      child: Text(
+                        _create
+                            ? 'I already have a guardian account'
+                            : 'Create a guardian account',
+                      ),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: _submitting
+                        ? null
+                        : () => setState(() {
+                            _guardian = !_guardian;
+                            _create = false;
+                            _error = null;
+                          }),
+                    icon: Icon(
+                      _guardian
+                          ? Icons.favorite_outline
+                          : Icons.shield_outlined,
+                    ),
+                    label: Text(
+                      _guardian
+                          ? 'Patient sign-in'
+                          : 'Guardian sign-in / setup',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Do not share your password. If you have not received an invitation, contact your hospital care team.',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _EmailVerificationPage extends StatefulWidget {
@@ -218,13 +339,17 @@ class _EmailVerificationPageState extends State<_EmailVerificationPage> {
     try {
       await widget.user.sendEmailVerification();
       if (mounted) {
-        setState(() => _message =
-            'Verification email sent. Open it, then return here and refresh.');
+        setState(
+          () => _message =
+              'Verification email sent. Open it, then return here and refresh.',
+        );
       }
     } on FirebaseAuthException catch (_) {
       if (mounted) {
-        setState(() => _message =
-            'We could not send a verification email. Please try again later.');
+        setState(
+          () => _message =
+              'We could not send a verification email. Please try again later.',
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -238,46 +363,52 @@ class _EmailVerificationPageState extends State<_EmailVerificationPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Icon(Icons.mark_email_unread_outlined, size: 48),
-                      const SizedBox(height: 18),
-                      Text('Verify your email',
-                          style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Before continuing, verify ${widget.user.email ?? 'the email address linked to this account'}.',
-                      ),
-                      if (_message != null) ...[
-                        const SizedBox(height: 16),
-                        _Message(text: _message!)
-                      ],
-                      const SizedBox(height: 20),
-                      FilledButton(
-                          onPressed: _sending ? null : _send,
-                          child: Text(_sending
-                              ? 'Sending…'
-                              : 'Send verification email')),
-                      OutlinedButton(
-                          onPressed: _refresh,
-                          child: const Text('I have verified my email')),
-                      TextButton(
-                          onPressed: widget.auth.signOut,
-                          child: const Text('Use another account')),
-                    ]),
-              ),
+    body: SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.mark_email_unread_outlined, size: 48),
+                const SizedBox(height: 18),
+                Text(
+                  'Verify your email',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Before continuing, verify ${widget.user.email ?? 'the email address linked to this account'}.',
+                ),
+                if (_message != null) ...[
+                  const SizedBox(height: 16),
+                  _Message(text: _message!),
+                ],
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: _sending ? null : _send,
+                  child: Text(
+                    _sending ? 'Sending…' : 'Send verification email',
+                  ),
+                ),
+                OutlinedButton(
+                  onPressed: _refresh,
+                  child: const Text('I have verified my email'),
+                ),
+                TextButton(
+                  onPressed: widget.auth.signOut,
+                  child: const Text('Use another account'),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _ProgressScreen extends StatelessWidget {
@@ -292,25 +423,23 @@ class _Message extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.errorContainer,
-            borderRadius: BorderRadius.circular(12)),
-        child: Text(text),
-      );
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(text),
+  );
 }
 
 String _friendlyAuthError(FirebaseAuthException error) => switch (error.code) {
-      'invalid-credential' ||
-      'wrong-password' ||
-      'user-not-found' =>
-        'Check your email address and password.',
-      'user-disabled' =>
-        'This account is currently unavailable. Contact your care team.',
-      'too-many-requests' =>
-        'Too many attempts. Please wait a moment, reset your password, or contact your care team.',
-      'network-request-failed' =>
-        'Check your internet connection and try again.',
-      _ =>
-        'We could not sign you in. Please try again or contact your care team.',
-    };
+  'invalid-credential' ||
+  'wrong-password' ||
+  'user-not-found' => 'Check your email address and password.',
+  'user-disabled' =>
+    'This account is currently unavailable. Contact your care team.',
+  'too-many-requests' =>
+    'Too many attempts. Please wait a moment, reset your password, or contact your care team.',
+  'network-request-failed' => 'Check your internet connection and try again.',
+  _ => 'We could not sign you in. Please try again or contact your care team.',
+};

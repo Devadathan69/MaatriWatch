@@ -98,7 +98,7 @@ class _NutritionReviewPanelState extends State<NutritionReviewPanel> {
                               children: [
                                 Text(
                                     'Declared preferences: ${row['data']['preferences']}'),
-                                for (final day in (row['data']['days'] as List)
+                                for (final day in (row['data']['days'] as List? ?? [])
                                     .whereType<Map>())
                                   ListTile(
                                       title: Text(day['date'] as String),
@@ -106,6 +106,10 @@ class _NutritionReviewPanelState extends State<NutritionReviewPanel> {
                                           .map((m) =>
                                               '${m['slot']}: ${m['name']} · ${m['portion']}\nIngredients: ${(m['ingredients'] as List).join(', ')}')
                                           .join('\n'))),
+                                if (row['data']['format'] == 'food_guidance_v1') ...[
+                                  Text(row['data']['overview'] as String),
+                                  for (final food in (row['data']['foods'] as List).whereType<Map>()) ListTile(title: Text('${food['name']} · ${food['advice']}'), subtitle: Text(food['reason'] as String)),
+                                ],
                                 TextField(
                                     controller: _note,
                                     decoration: const InputDecoration(
@@ -118,7 +122,7 @@ class _NutritionReviewPanelState extends State<NutritionReviewPanel> {
                                           : () => _review(
                                               row['id'] as String, 'approve'),
                                       child:
-                                          const Text('Approve reviewed plan')),
+                                          const Text('Approve reviewed guidance')),
                                   OutlinedButton(
                                       onPressed: _busy
                                           ? null

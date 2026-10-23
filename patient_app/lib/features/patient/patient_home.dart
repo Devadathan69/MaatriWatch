@@ -11,6 +11,7 @@ import 'companion_page.dart';
 import 'concerns_page.dart';
 import 'nutrition_page.dart';
 import 'consultations_page.dart';
+import 'guardians_page.dart';
 
 /// Patient-facing safety companion. It routes concerns to care teams; it does not diagnose.
 class PatientHome extends StatefulWidget {
@@ -325,7 +326,7 @@ class _PatientHomeState extends State<PatientHome> {
       Card(
           child: ListTile(
               leading: const Icon(Icons.restaurant_menu_outlined),
-              title: const Text('Nourish • reports & your food plan'),
+              title: const Text('Nourish • reports & food ideas'),
               subtitle: const Text(
                   'Confirm your report, explore familiar meals, and share a draft for clinician review.'),
               trailing: const Icon(Icons.chevron_right),
@@ -371,7 +372,7 @@ class _PatientHomeState extends State<PatientHome> {
                   : 'Ask your care team')),
       const SizedBox(height: 10),
       OutlinedButton.icon(
-          onPressed: _report,
+          onPressed: _openWellbeing,
           icon: const Icon(Icons.edit_note_outlined),
           label: const Text('Complete a wellbeing check-in'))
     ]);
@@ -395,10 +396,7 @@ class _PatientHomeState extends State<PatientHome> {
               icon: const Icon(Icons.sos_rounded, size: 30),
               label: const Text('SOS — I need urgent help'))),
       const SizedBox(height: 10),
-      OutlinedButton.icon(
-          onPressed: _report,
-          icon: const Icon(Icons.edit_note_outlined),
-          label: const Text('Report symptoms to my care team')),
+      OutlinedButton.icon(onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => PatientGuardiansPage(api:_api))), icon: const Icon(Icons.shield_outlined), label: const Text('My SOS guardians')),
       const SizedBox(height: 10),
       OutlinedButton.icon(
           onPressed: () => Navigator.of(context).push<void>(
@@ -756,33 +754,22 @@ class _PatientHomeState extends State<PatientHome> {
   }
 
   Future<void> _sos() async {
-    final note = await _dialog('Request urgent help',
-        'Tell us anything your care team should know (optional).');
+    final note = await _dialog(
+      'Request urgent help',
+      'Tell us anything your care team should know (optional).',
+    );
     if (note == null) return;
     try {
-      await _api.sos(note);
+      final result = await _api.sos(note);
       _message(
-          'Help request sent. If this is life-threatening, call emergency services now.');
+        (result['guardian_notifications_queued'] as int? ?? 0) > 0
+            ? 'Help request saved and guardian notifications queued. For immediate danger, call emergency services.'
+            : 'Help request saved. No new guardian notification was queued; check your linked guardians or a recent SOS. For immediate danger, call emergency services.',
+      );
     } catch (_) {
       _message(
-          'We could not send this request. Call emergency services or your care team now.');
-    }
-  }
-
-  Future<void> _report() async {
-    final choice = await showModalBottomSheet<List<String>>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => const _Symptoms());
-    if (choice == null) return;
-    try {
-      final result = await _api.symptoms(choice, '');
-      _message(result['urgent'] == true
-          ? 'Urgent report sent. Seek medical care now.'
-          : 'Your report was sent to your care team.');
-    } catch (_) {
-      _message(
-          'Unable to send now. Please call your care team if you need help.');
+        'We could not send this request. Call emergency services or your care team now.',
+      );
     }
   }
 
@@ -1000,48 +987,4 @@ class _Empty extends StatelessWidget {
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             Text(text, textAlign: TextAlign.center)
           ])));
-}
-
-class _Symptoms extends StatefulWidget {
-  const _Symptoms();
-  @override
-  State<_Symptoms> createState() => _SymptomsState();
-}
-
-class _SymptomsState extends State<_Symptoms> {
-  final selected = <String>{};
-  static const items = {
-    'heavy_bleeding': 'Heavy bleeding',
-    'breathing': 'Trouble breathing or chest pain',
-    'headache': 'Severe headache or vision change',
-    'fever': 'Fever or feeling very unwell',
-    'mental_health': 'Feeling unsafe or thoughts of harm',
-    'other': 'Something else worries me'
-  };
-  @override
-  Widget build(BuildContext context) => SafeArea(
-      child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('What are you feeling?',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const Text('Select anything that applies.'),
-                ...items.entries.map((e) => CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: selected.contains(e.key),
-                    onChanged: (v) => setState(() => v == true
-                        ? selected.add(e.key)
-                        : selected.remove(e.key)),
-                    title: Text(e.value))),
-                SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                        onPressed: selected.isEmpty
-                            ? null
-                            : () => Navigator.pop(context, selected.toList()),
-                        child: const Text('Send to care team')))
-              ])));
 }

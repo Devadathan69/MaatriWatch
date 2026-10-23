@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/patient_api.dart';
 import '../../core/device_reminders.dart';
+import 'event_reminder_sheet.dart';
 
 /// Patient-controlled continuity. Background delivery is a server responsibility.
 class CompanionPage extends StatefulWidget {
@@ -140,35 +141,12 @@ class _CompanionPageState extends State<CompanionPage> {
   }
 
   Future<void> _reminder() async {
-    final title =
-        await _input('A little reminder', 'What would you like to remember?');
-    if (title == null || title.isEmpty || !mounted) return;
-    final now = DateTime.now();
-    final day = await showDatePicker(
-        context: context,
-        initialDate: now,
-        firstDate: now,
-        lastDate: now.add(const Duration(days: 365)));
-    if (day == null || !mounted) return;
-    final time =
-        await showTimePicker(context: context, initialTime: TimeOfDay.now());
-    if (time == null || !mounted) return;
-    final repeat = await showDialog<String>(
-        context: context,
-        builder: (c) => SimpleDialog(title: const Text('Repeat'), children: [
-              for (final value in ['none', 'daily', 'weekly'])
-                SimpleDialogOption(
-                    onPressed: () => Navigator.pop(c, value),
-                    child: Text(value == 'none' ? 'Just once' : value))
-            ]));
-    if (repeat == null) return;
-    final due =
-        DateTime(day.year, day.month, day.day, time.hour, time.minute).toUtc();
-    await _act(() => widget.api.createReminder({
-          'title': title,
-          'due_at': due.toIso8601String(),
-          'recurrence': repeat
-        }));
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => EventReminderSheet(api: widget.api),
+    );
+    if (saved == true) await _load();
   }
 
   void _settings() {
@@ -436,7 +414,7 @@ class _CompanionPageState extends State<CompanionPage> {
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             const Text(
-                'Your reminder inbox is kept by the server worker. In a configured Android app, you can also enable gentle phone notifications. Delivery depends on your connection and device settings.'),
+                'Add an event and choose how early you would like a reminder. Enable phone notifications to receive it when the app is closed.'),
             Wrap(spacing: 8, children: [
               TextButton.icon(
                   onPressed: () => _act(() async {
@@ -461,7 +439,7 @@ class _CompanionPageState extends State<CompanionPage> {
                   child: ListTile(
                       title: Text(item['data']['title'] as String),
                       subtitle: Text(
-                          '${DateTime.tryParse(item['data']['due_at'] as String)?.toLocal()} · ${item['data']['recurrence']} · ${item['data']['status']}'),
+                          reminderDescription(context, item['data'] as Map)),
                       trailing: PopupMenuButton<String>(
                           onSelected: (action) => _act(() => widget.api
                               .changeReminder(item['id'] as String, action)),

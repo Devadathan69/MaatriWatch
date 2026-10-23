@@ -4,8 +4,8 @@ The phone-testing environment uses the normal patient application, Firebase emai
 
 ## Configured services
 
-- Supabase PostgreSQL uses its IPv4-compatible **Session pooler**, port `5432`, with TLS required. The working URI is stored only in ignored `backend/.env` and `backend/.env.supabase`. Migrations through `013` are applied. Firebase remains the identity provider; no Supabase Auth migration or client database key is needed.
-- All 29 app tables have row-level security enabled, with table and owned-sequence access revoked from public client roles. The backend database owner retains access; Firebase identities and patient/hospital authorization are enforced by the API. Future tables must receive equivalent restrictions before storing data.
+- Supabase PostgreSQL uses its IPv4-compatible **Session pooler**, port `5432`, with TLS required. The working URI is stored only in ignored `backend/.env` and `backend/.env.supabase`. Migrations through `014` are applied. Firebase remains the identity provider; no Supabase Auth migration or client database key is needed.
+- All 33 app tables have row-level security enabled, with table and owned-sequence access revoked from public client roles. The backend database owner retains access; Firebase identities and patient/hospital authorization are enforced by the API. Future tables must receive equivalent restrictions before storing data.
 - The Firebase Android app matches package `org.maatriwatch.patient`. Public client settings are in ignored `patient_app/firebase-config.local.json`; Firebase Admin credentials and OpenAI remain only in ignored `backend/.env`.
 - `DEMO_MODE`, `DEMO_IN_MEMORY`, and `ALLOW_UNVERIFIED_PATIENT_DEMO` are false. The normal backend requires verified Firebase identity and an active linked PostgreSQL patient record. `DAILY_API_KEY` is empty.
 - The API runs on loopback port `8000`. The reminder and realtime outbox workers run separately. Local process IDs/logs are kept under ignored `output/`.
@@ -38,7 +38,7 @@ Use `flutter devices` to find `DEVICE_ID`. The compiled debug APK is also availa
 
 Private generated sign-in details are in `output/PHONE_TEST_SIGNIN.md`. They are deliberately excluded from Git. The dedicated patient and clinician accounts use reserved `.test` email addresses and an isolated synthetic hospital/profile. Only these newly created synthetic accounts were pre-verified by the administrator for integration testing; real-account email verification remains enforced. Existing real/admin/device identities were not changed.
 
-The fixture includes a synthetic concern, confirmed report comparison, meal-plan draft, companion memory/messages, reminder inbox entries, and a booking. It contains no real medical history. Open the companion, concern history, Nourish planner, and consultations from the patient's care/help screens. Memory and sharing controls remain available to inspect or change.
+The fixture includes synthetic concerns, a confirmed report, companion memory/messages, reminder inbox entries, and a booking. Previous weekly-plan records are retained as history; complete the new preference questionnaire and request AI food ideas in Nourish. It contains no real medical history. Open these features from the patient's care/help screens. Memory and sharing controls remain available.
 
 To use a real email instead, provision/link that Firebase user through the normal hospital onboarding flow and complete email verification. An unlinked Firebase account is intentionally denied access. The complete production invitation flow also needs the configured activation page described in [backend deployment](../backend/DEPLOYMENT.md).
 
@@ -53,3 +53,15 @@ On 23 October 2026:
 - The backend suite passed 83 tests. Final password sign-in on the physical phone and native push delivery still need device verification.
 
 On 24 October 2026, Supabase Session pooler connectivity was verified, migrations `010`–`013` applied, and the synthetic phone-test profiles/data copied without changing existing cloud records. Public API role access was denied in database checks. The API and both workers were switched to Supabase, and cloud-backed API read/write/persistence checks passed with Firebase token verification mocked only inside an isolated test process. The backend suite still passes 83 tests. Physical-phone password sign-in and native push delivery remain pending until the phone is reconnected.
+
+## Patient feedback update — 24 October 2026
+
+The normal app was installed and the user exercised patient mode. The updated build separates recorded audio with an editable transcript from manual symptom fields, removes the redundant symptom-report button and audio-file upload, and presents short monthly sections for experiences, severity, patterns and major insights. Keep `MAX_CONTENT_LENGTH=4000000` for recordings/report uploads; telemetry retains its independent 16 KB cap.
+
+Event reminders capture the event name/date/time and advance notice. Nourish requires the new preference questionnaire and explicit AI consent, then returns suggested foods and explanations of items to limit or avoid using the selected confirmed report. No built-in weekly plan substitutes for an unavailable model.
+
+For SOS, open **Help → My SOS guardians**, enter the guardian's email, and create a private code. On another Android phone, install the same app, choose **Guardian sign-in / setup**, sign in or create an account, verify that email, enter the code and enable SOS notifications. Codes are email-bound, single-use and valid for 24 hours; reissuing invalidates older codes for that recipient. Up to three guardians can be linked. Removing a guardian stops new notifications and inbox access. Guardians receive no reports or chat access.
+
+The companion worker handles durable SOS delivery and retries, with generic high-priority push text and a persistent guardian inbox. Duplicate notifications within one minute are suppressed. Pending pushes expire after 15 minutes; missed requests remain in the inbox while the link is active. Background/foreground delivery still needs a two-phone device check. Notifications remain best-effort; keep a direct emergency contact plan.
+
+Migration `014` was applied locally and to the backed-up cloud database. Isolated synthetic checks passed linking, ownership, revocation, SOS delivery/idempotency, event storage, live OpenAI food advice, brief monthly reports, and transcription beyond the old cap. Firebase verification and FCM sends were mocked only inside that isolated process; no external guardian was notified. The current suite passes 92 backend, 17 patient-app and four dashboard tests, with clean analysis for both Flutter apps.

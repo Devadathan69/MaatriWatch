@@ -87,4 +87,16 @@ After implementation, replace baseline-only wording with a dated distinction bet
 
 ## Local phone setup follow-up
 
+The 24 October patient-feedback update below supersedes the earlier weekly meal-planning and paragraph-first concern-entry design.
+
 The normal Firebase Android application was registered and built after phase delivery. Local PostgreSQL synthetic API/storage checks and a database-restart persistence check passed. On 24 October 2026, the existing Supabase database was backed up, migrated through `013`, and selected by the API and both workers through the TLS Session pooler. Original cloud records were preserved; the isolated synthetic phone-test profiles and feature records were copied with their Firebase links intact. Public client database access is denied. Firebase Admin credentials were verified, and the backend suite passes 83 tests. The local database remains a fallback. See [phone testing and remaining device checks](PHONE_TESTING.md); physical-phone password sign-in and native push delivery remain pending until the phone is reconnected.
+
+## Patient feedback implementation — 24 October 2026
+
+- Guardian Android mode, verified-email private linking, durable SOS inbox/push queue, retries and revocation. Migration `014` protects all four new tables from public client roles.
+- Removed the redundant care-team symptom button and audio-file upload. Manual entry starts with symptom fields; recorded entry provides an editable transcript and AI organisation.
+- Fixed the old global 16 KB upload setting and contextual upload errors. Telemetry retains its own 16 KB limit.
+- Monthly reports use short sections for experiences, severity, patterns and major insights. Supporting-report links hide raw record IDs.
+- Reminders capture the event name/date/time and at-event, one-hour, one-day, three-day or one-week notice.
+- Replaced weekly meal generation with a questionnaire and AI food suggestions/limit/avoid explanations. Report confirmation, allergy exclusions and clinician review remain enforced.
+- Verification: 92 backend tests, 17 patient tests, four dashboard tests; real Supabase and live synthetic OpenAI checks passed. Guardian FCM sends were mocked; two-phone delivery remains a device check.

@@ -29,6 +29,47 @@ class ConcernTests(unittest.TestCase):
         self.assertEqual(saved.status_code, 201)
         self.assertFalse(saved.json['concern']['data']['share_with_care_team'])
 
+    def test_manual_symptoms_need_no_paragraph_and_preserve_severity(self):
+        result = self.client.post('/api/v1/patient/concerns', json={
+            'entry_mode':'manual', 'symptoms':[symptom(severity='severe')],
+            'confirmed':True, 'share_with_care_team':False}, headers=self.headers)
+        self.assertEqual(result.status_code,201)
+        self.assertEqual(result.json['concern']['data']['symptoms'][0]['severity'],'severe')
+        self.assertTrue(result.json['concern']['data']['urgent'])
+        self.assertIn('Headache',result.json['concern']['data']['original_text'])
+
+    @patch('app.concerns.ai_provider.response', return_value={'symptoms':[symptom(severity='severe')]})
+    def test_urgent_concerns_with_consent_keep_structured_symptoms(self, provider):
+        result = self.client.post('/api/v1/patient/concerns/draft',json={
+            'text':'severe headache frequently', 'processing_consent':True,'language':'en'},headers=self.headers)
+        self.assertEqual(result.status_code,200)
+        self.assertTrue(result.json['urgent'])
+        self.assertEqual(result.json['draft']['symptoms'][0]['severity'],'severe')
+        provider.assert_called_once()
+
+    @patch('app.concerns.ai_provider.response', side_effect=RuntimeError('synthetic provider outage'))
+    def test_provider_outage_never_suppresses_urgent_guidance(self, provider):
+        result = self.client.post('/api/v1/patient/concerns/draft',json={
+            'text':'severe headache', 'processing_consent':True,'language':'en'},headers=self.headers)
+        self.assertEqual(result.status_code,200)
+        self.assertTrue(result.json['urgent'])
+        self.assertIn('emergency',result.json['guidance'])
+        self.assertEqual(result.json['draft']['symptoms'],[])
+        self.assertEqual(result.json['draft']['original_text'],'severe headache')
+
+    @patch('app.concerns.ai_provider.transcribe_audio',return_value='A mild headache')
+    def test_normal_voice_clip_exceeds_telemetry_limit_without_affecting_device_limit(self, transcribe):
+        result = self.client.post('/api/v1/patient/concerns/transcribe',data={
+            'language':'en','processing_consent':'true',
+            'audio':(io.BytesIO(b'RIFF0000WAVE'+b'\x00'*1_000_000),'concern.wav')},headers=self.headers)
+        self.assertEqual(result.status_code,200)
+        too_large = self.client.post('/api/v1/ingest/telemetry',data=b'x'*20_000, content_type='application/json')
+        self.assertEqual(too_large.status_code,413)
+        self.app.config['MAX_CONTENT_LENGTH'] = 100
+        audio_error = self.client.post('/api/v1/patient/concerns/transcribe',data=b'x'*200,content_type='multipart/form-data',headers=self.headers)
+        self.assertEqual(audio_error.status_code,413)
+        self.assertNotIn('telemetry',audio_error.json['message'])
+
     @patch('app.concerns.ai_provider.response')
     def test_bilingual_extraction_is_grounded_and_does_not_invent_evidence(self, provider):
         row = symptom('തലവേദന')
@@ -71,7 +112,9 @@ class ConcernTests(unittest.TestCase):
         self.assertEqual(finalize_previous_month(repo, datetime(2026,11,2,tzinfo=timezone.utc)), 1)
         self.assertEqual(finalize_previous_month(repo, datetime(2026,11,2,tzinfo=timezone.utc)), 0)
 
-    @patch('app.concerns.ai_provider.response', return_value={'insights': [{'text': 'A fabricated claim', 'source_report_ids': ['unknown']}]})
+    @patch('app.concerns.ai_provider.response', return_value={'insights': [
+        {'section':section,'text':'A fabricated claim','source_report_ids':['unknown']}
+        for section in ('experienced','severity','patterns','insights')]})
     def test_ai_summary_rejects_unknown_source_reports(self, provider):
         self.client.post('/api/v1/patient/concerns', json={'original_text': 'headache', 'language': 'en', 'symptoms': [symptom()], 'confirmed': True}, headers=self.headers)
         result = self.client.post('/api/v1/patient/concerns/summary', json={'processing_consent': True}, headers=self.headers)
@@ -88,6 +131,7 @@ class ConcernTests(unittest.TestCase):
             repo.delete('summary')
             repo.put('preferences', {'auto_summary_enabled': True}, stable_key='settings')
             self.app.config['OPENAI_API_KEY'] = 'unit-test-placeholder'
-            provider.return_value = {'insights': [{'text': 'Headache was reported; review the original report.', 'source_report_ids': [row['id']]}]}
+            provider.return_value = {'insights': [{'section':section, 'text': 'Headache was reported; review the original report.', 'source_report_ids': [row['id']]}
+                for section in ('experienced','severity','patterns','insights')]}
             self.assertEqual(finalize_previous_month(repo, datetime(2026,11,2,tzinfo=timezone.utc)), 1)
             self.assertEqual(repo.list('summary')[0]['data']['review_status'], 'draft_for_review')

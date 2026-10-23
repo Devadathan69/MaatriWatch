@@ -459,11 +459,13 @@ def submit_wellbeing_checkin():
 @patient_bp.post("/patient/sos")
 @require_firebase_user
 def sos():
+    from .guardians import queue_guardian_sos
     body = request.get_json(silent=True) or {}
     note = str(body.get("note", "")).strip()[:500]
     connection = get_db()
     with connection.cursor() as cursor:
         patient = _patient_for_actor(cursor)
+        cursor.execute('SELECT id FROM patients WHERE id=%s FOR UPDATE', (patient['id'],))
         cursor.execute("""INSERT INTO alerts (hospital_id, patient_id, severity, status, alert_type, message, triggered_at,
                           last_seen_at, occurrence_count, rule_id, rule_version, dedupe_key, evidence)
                           VALUES (%s, %s, 'critical', 'open', 'sos_help_request', %s, now(), now(), 1, 'patient_sos', '2026-1', %s, %s)
@@ -472,11 +474,13 @@ def sos():
                           RETURNING id, status, triggered_at""",
                        (patient["hospital_id"], patient["id"], "Patient requested urgent help." + (f" Note: {note}" if note else ""), f"patient-sos:{patient['id']}", '{"source":"patient_app"}'))
         alert = cursor.fetchone()
+        guardian_count = queue_guardian_sos(cursor, patient, alert['id'])
         cursor.execute("""INSERT INTO audit_log (actor_user_id, hospital_id, action, entity_type, entity_id, request_id, metadata, ip_address)
                           VALUES (%s, %s, 'patient.sos_requested', 'alert', %s, %s, %s, %s)""",
                        (g.actor["id"], patient["hospital_id"], str(alert["id"]), uuid4(), '{"source":"patient_app"}', request.remote_addr))
     connection.commit()
-    return jsonify({"alert": _row(alert), "message": "Your care team has been notified. If this is life-threatening, call local emergency services now."}), 201
+    return jsonify({"alert": _row(alert), "guardian_notifications_queued": guardian_count,
+        "message": "Urgent help request saved. Guardian notifications are queued when a guardian is linked. For immediate danger, call emergency services."}), 201
 
 
 @patient_bp.post("/patient/symptoms")

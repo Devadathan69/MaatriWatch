@@ -8,6 +8,7 @@ import 'core/runtime_config.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/demo/demo_patient_app.dart';
 import 'firebase_options.dart';
+import 'core/device_reminders.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ Future<void> main() async {
     try {
       await Firebase.initializeApp(
           options: PatientFirebaseOptions.currentPlatform);
+      DeviceReminders.listenForeground();
     } catch (_) {
       firebaseReady = false;
       initializationError =

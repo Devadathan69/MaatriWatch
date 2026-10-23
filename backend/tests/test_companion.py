@@ -80,3 +80,14 @@ class CompanionTest(unittest.TestCase):
         self.assertEqual(created.status_code, 201)
         changed = self.call('PATCH', '/reminders/' + created.json['reminder']['id'], {'action': 'snooze'})
         self.assertEqual(changed.status_code, 200)
+
+    def test_event_reminders_compute_notice_and_reject_elapsed_or_invalid_offsets(self):
+        event = datetime.now(timezone.utc) + timedelta(days=10)
+        result = self.call('POST','/reminders',{'title':'Doctor visit','event_at':event.isoformat(),'lead_minutes':4320})
+        self.assertEqual(result.status_code,201)
+        data = result.json['reminder']['data']
+        self.assertEqual(datetime.fromisoformat(data['due_at']),event-timedelta(days=3))
+        self.assertEqual(datetime.fromisoformat(data['event_at']),event)
+        self.assertEqual(self.call('POST','/reminders',{'title':'Visit','event_at':event.isoformat(),'lead_minutes':True}).status_code,400)
+        elapsed = datetime.now(timezone.utc)+timedelta(hours=1)
+        self.assertEqual(self.call('POST','/reminders',{'title':'Visit','event_at':elapsed.isoformat(),'lead_minutes':4320}).status_code,400)

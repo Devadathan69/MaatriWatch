@@ -1,6 +1,5 @@
-"""Pregnancy meal-planning drafts built from an explicit, allergen-labelled catalog."""
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+"""Confirmed reports and preference-first AI food guidance with an ingredient catalog."""
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -43,10 +42,6 @@ CATALOG = [
     meal('roti_paneer','Chapati with paneer and vegetables','dinner','dosa',['wheat','pasteurised milk paneer','carrot','spinach','cumin','cooking oil'],'Example: 2 small chapatis + cooked paneer/vegetables',allergens=['wheat','gluten','milk'],diet='vegetarian'),
     meal('rice_pumpkin','Rice, pumpkin and seed bowl','dinner','rice',['rice','pumpkin','pumpkin seed','spinach','cooking oil'],'Example: a bowl; discuss protein adequacy with your dietitian'),
 ]
-BY_ID = {m['id']:m for m in CATALOG}
-SLOTS = ['breakfast','morning_snack','lunch','afternoon_snack','dinner']
-
-
 def preferences(repo):
     values = repo.list('nutrition_preferences',1)
     return {**DEFAULTS, **(values[0]['data'] if values else {})}
@@ -56,53 +51,6 @@ def prefs_digest(prefs):
     return hashlib.sha256(json.dumps(prefs,sort_keys=True).encode()).hexdigest()
 
 
-def eligible(prefs, slot):
-    rows=[]
-    for item in CATALOG:
-        if item['slot'] != slot or set(item['allergens']) & set(prefs['allergens']):
-            continue
-        if prefs['diet']=='vegan' and item['diet']!='vegan' or prefs['diet']=='vegetarian' and item['diet']=='non_vegetarian':
-            continue
-        if any(dislike.casefold() in ' '.join(item['ingredients']).casefold() for dislike in prefs['dislikes']):
-            continue
-        rows.append(item)
-    return rows
-
-
-def build_plan(prefs, report, start=None):
-    if not prefs['allergies_confirmed']:
-        abort(409,description='Confirm food allergies/preferences before creating a plan. Unlisted allergies need dietitian review.')
-    if report['data']['context']['stage'] not in ('pregnant','postpartum'):
-        abort(409,description='Record pregnancy or postpartum context first. A dietitian must adapt portions and lactation needs.')
-    analysis=report['data']['analysis']
-    if analysis['urgent_review']:
-        abort(409,description='This report needs prompt clinical assessment. Please contact your care team; a meal plan is not treatment.')
-    focus=[]
-    if any(r['analyte'].startswith('ogtt_') and r['status']=='above_threshold' for r in analysis['readings']):
-        focus.append('balanced_carb')
-    if any(r['analyte']=='hemoglobin' and r['status']=='below_threshold' for r in analysis['readings']):
-        focus.append('iron_support')
-    start=start or datetime.now(timezone.utc).date()
-    days=[]
-    for i in range(7):
-        meals=[]
-        for slot in SLOTS:
-            options=eligible(prefs,slot)
-            if not options:
-                abort(409,description=f'No safe catalog option for {slot}. Ask your dietitian to create a plan for these restrictions.')
-            options=sorted(options,key=lambda m: -sum(tag in m['tags'] for tag in focus))
-            selected=deepcopy(options[i%len(options)])
-            selected['completed']=False
-            meals.append(selected)
-        days.append({'date':(start+timedelta(days=i)).isoformat(),'meals':meals})
-    return {'title':'A week of gentle nourishment','days':days,'status':'draft_for_clinician_review',
-        'report_id':report['id'],'preferences_digest':prefs_digest(prefs),'preferences':prefs,
-        'focus':focus,'source_policy':analysis['policy_version'],'review_note':None,
-        'notice':'A food-planning draft, not a prescribed therapeutic diet. Portions are examples and nutrient adequacy is not clinically validated. A dietitian must adapt this to your needs.',
-        'food_safety':['Use pasteurised dairy and fully cooked eggs/fish.','Wash produce; cook, chill and store food safely.','No alcohol, raw/undercooked animal foods, or weight-loss targets are suggested.'],
-        'sources':['https://www.fda.gov/food/people-risk-foodborne-illness/food-safety-moms-be', 'https://health.gov/sites/default/files/2021-12/DGA_Pregnancy_FactSheet-508.pdf']}
-
-
 @nutrition_bp.route('/patient/nutrition',methods=['GET','PUT','POST'])
 @require_firebase_user
 def nutrition_home():
@@ -110,61 +58,25 @@ def nutrition_home():
     prefs=preferences(repo)
     if request.method=='PUT':
         values=body()
-        if values.get('diet') not in ('vegetarian','vegan','non_vegetarian'):
-            abort(400,description='Choose a supported dietary preference')
-        allergens=values.get('allergens',[])
-        dislikes=values.get('dislikes',[])
-        if not isinstance(allergens,list) or any(a not in ALLERGENS for a in allergens):
-            abort(400,description='Unlisted allergies need a dietitian plan; this catalog cannot safely personalise them')
-        if not isinstance(dislikes,list) or len(dislikes)>20 or any(not isinstance(v,str) or not v.strip() or len(v)>80 for v in dislikes):
-            abort(400,description='Invalid disliked ingredients')
-        if not isinstance(values.get('allergies_confirmed'),bool):
-            abort(400,description='Explicitly confirm food allergy information')
-        prefs={'diet':values['diet'],'allergens':sorted(set(allergens)),'dislikes':dislikes,'allergies_confirmed':values['allergies_confirmed']}
+        from .food_guidance import validate_preferences
+        prefs = validate_preferences(values)
         repo.put('nutrition_preferences',prefs,stable_key='settings')
     if request.method=='POST':
         value=body()
         report=repo.get('report_analysis',value.get('report_id'))
         if not report:
             abort(404,description='Confirm and save a report first')
-        row=repo.put('diet_plan',build_plan(prefs,report))
+        if value.get('processing_consent') is not True:
+            abort(400, description='Allow AI to analyse your report and food preferences first')
+        from .food_guidance import generate_guidance
+        from .companion import preferences as companion_preferences
+        row=repo.put('diet_plan',generate_guidance(prefs,report,companion_preferences(repo)['language']))
         return jsonify({'plan':row}),201
     plans=repo.list('diet_plan',1)
-    latest=plans[0] if plans else None
+    latest=plans[0] if plans and plans[0]['data'].get('format') == 'food_guidance_v1' else None
     refresh=bool(latest and latest['data']['preferences_digest']!=prefs_digest(prefs))
     return jsonify({'preferences':prefs,'plan':None if refresh else latest,'requires_refresh':refresh,
-                    'catalog':CATALOG,'allergens':ALLERGENS})
-
-
-@nutrition_bp.patch('/patient/nutrition/plans/<identifier>')
-@require_firebase_user
-def change_plan(identifier):
-    repo=records(actor_patient())
-    row=repo.get('diet_plan',identifier)
-    if not row:
-        abort(404,description='Plan not found')
-    prefs=preferences(repo)
-    data=row['data']
-    if data['preferences_digest']!=prefs_digest(prefs):
-        abort(409,description='Preferences changed; create a fresh plan first')
-    values=body()
-    day=values.get('day')
-    slot=values.get('slot')
-    if isinstance(day,bool) or not isinstance(day,int) or not 0<=day<7 or slot not in SLOTS:
-        abort(400,description='Choose a valid day and meal')
-    index=SLOTS.index(slot)
-    if 'swap_to' in values:
-        replacement=next((m for m in eligible(prefs,slot) if m['id']==values['swap_to']),None)
-        if not replacement:
-            abort(400,description='This meal is not compatible with your preferences/allergies')
-        data['days'][day]['meals'][index]={**deepcopy(replacement),'completed':False}
-        data.update(status='draft_for_clinician_review',review_note=None)
-        data.pop('reviewed_by',None);data.pop('reviewed_at',None)
-    elif isinstance(values.get('completed'),bool):
-        data['days'][day]['meals'][index]['completed']=values['completed']
-    else:
-        abort(400,description='Choose a replacement meal or completion state')
-    return jsonify({'plan':repo.put('diet_plan',data,identifier)})
+                    'profile_complete':prefs.get('questionnaire_version') == 1,'allergens':ALLERGENS})
 
 
 def clinician_patient(hospital_id,patient_id):

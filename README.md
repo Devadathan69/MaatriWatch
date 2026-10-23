@@ -2,26 +2,28 @@
 
 Connected maternal-care support through a wearable prototype, a patient companion app, and a clinician dashboard.
 
-**AIBoomi Startup Weekend Kochi — 23 October 2026.** This README follows the participants' handbook outline, separates prior work from the four new development phases, and records the prototype's verification and deployment limits.
+**AIBoomi Startup Weekend Kochi — 23–24 October 2026.** This README follows the participants' handbook outline, separates prior work from the four new development phases, and records the prototype's verification and deployment limits.
 
 ## Weekend development progress
 
 The [four-phase implementation plan](docs/IMPLEMENTATION_PLAN.md) tracks the requested companion, bilingual concerns, report/nutrition, and video-consultation work. The feature inventory below remains the disclosed **prior-work baseline**.
 
-- **Phase 1:** personal companion with opt-in memory, inspect/delete controls, separately consented health context, English/Malayalam replies, and timezone-aware reminders/inbox. The server reminder worker must run continuously. Phase 4 also adds optional Android Firebase notifications with generic lock-screen text and device opt-in.
-- **Phase 2:** English/Malayalam short audio transcription and typed concerns, editable structured symptoms, confirmation and sharing controls, recurring-symptom history, source-linked monthly summaries, and a clinician summary panel. Optional automatic AI month-end handoffs require explicit opt-in and the worker. Audio is not retained by the app; native/browser microphone behavior and real provider transcription still require device/integration validation.
-- **Phase 3:** PDF/image/text report extraction with editable confirmation, versioned pregnancy-specific comparisons, and the Nourish meal planner. It includes seven-day meal drafts, original food illustrations, ingredients, shopping lists, allergy/preferences filtering, safe swap checks, and a clinician review panel. Plans use a bounded, explicit food catalog; they are not clinically validated nutrient prescriptions or a guarantee of extraction accuracy.
+- **Phase 1:** personal companion with opt-in memory and health context, English/Malayalam replies, and a persistent reminder inbox. Event reminders record what is happening, when it happens, and whether to notify at the event or an hour, a day, three days, or a week before. Android notifications require permission and the server worker.
+- **Phase 2:** separate recorded-audio/transcript and manual symptom-entry paths in English/Malayalam. Manual entry needs no paragraph or AI processing. Confirmed history includes severity, onset and frequency. Brief monthly AI reports group experiences, severity, patterns and major insights, with readable supporting-report links. Audio-file upload was removed from the patient UI; recordings are not retained by the app.
+- **Phase 3:** confirmed PDF/image/text report extraction and versioned pregnancy-specific comparisons. Nourish first asks about diet, sweet tastes, nausea, appetite, spice, favourite foods, allergies, exclusions and care-team instructions. After explicit AI consent, it suggests food items and explains what to limit or avoid using the selected report. Ingredient/allergen checks constrain AI choices; no automatic weekly meal schedule is generated. Clinician review remains available.
 - **Phase 4:** clinician availability, patient booking/cancellation/transactional rescheduling, appointment reminders, and private Daily video integration for web/Android. Join access is limited to the booked patient/assigned clinician and the scheduled window; tokens expire and are not stored. Actual two-party calls and native notification delivery still require configured providers and device testing.
 
-Apply migrations `010`–`013` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-hostname localhost --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
+Patients can invite up to three guardians using an email-bound, one-use code. A verified guardian signs into MaatriWatch on another Android phone and enables SOS notifications. SOS alerts are stored durably and use generic lock-screen text. Guardians gain no medical-record or companion-chat access. Video is currently disabled; appointment booking remains available.
+
+Apply migrations `010`–`014` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-hostname localhost --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
 
 Run credential-isolated backend tests with `.\.venv\Scripts\python.exe backend/scripts/run_tests.py` from the repository root.
 
-For a credential-free synthetic demonstration of the new screens, run `.\.venv\Scripts\python.exe backend/scripts/run_local_demo.py` from the root, then start the connected Flutter demo above. It seeds a clearly labelled synthetic report, concern, and meal plan. Open **Nourish** to explore meal cards, reports, and the shopping list. AI and video provider calls are unconfigured by default. The explicit `--with-openai` option enables real AI requests using only server-side OpenAI settings; other services remain isolated. See the [demo and USB testing instructions](docs/COMPANION_DEPLOYMENT.md).
+For the isolated synthetic demonstration, run `.\.venv\Scripts\python.exe backend/scripts/run_local_demo.py` from the root, then start the connected Flutter demo above. It seeds a report, concern and food preferences. AI food advice is generated only with explicit `--with-openai` opt-in; no static plan substitutes for an unavailable model. See the [demo and USB testing instructions](docs/COMPANION_DEPLOYMENT.md).
 
-Current verification: **83 backend tests, 17 patient-app tests, and four dashboard tests passed**, with clean Flutter analysis for both apps. Android debug APK and patient web release builds succeeded; the four-tab demo was installed on a connected Android phone. Live OpenAI smoke checks passed synthetic chat, symptom extraction, text/PDF report extraction, and English audio transcription. Local PostgreSQL migrations, API storage, reminder processing, and persistence across a database restart passed synthetic checks; Firebase token verification was mocked only in those isolated API storage checks.
+Current verification: **92 backend tests, 17 patient-app tests, and four dashboard tests passed**, with clean Flutter analysis for both apps. The normal Android debug APK built successfully. Live OpenAI synthetic checks passed short-audio transcription beyond the former 16 KB limit, brief monthly summaries, and preference/report-aware food guidance. Earlier checks also covered chat, symptom extraction and text/PDF report extraction.
 
-On 24 October 2026, the backed-up Supabase database was upgraded through `013`, existing cloud records preserved, and synthetic phone-test profiles/data copied. The API and both workers now use its TLS Session pooler; all 29 app tables deny direct public client access. Cloud-backed API storage and persistence checks passed with token verification mocked only in the isolated integration process. The configured normal Android APK is ready for manual device sign-in. These checks do not validate medical accuracy, native push delivery, a two-party video call, or representative Malayalam speech quality. See [signed-in phone testing](docs/PHONE_TESTING.md), [deployment](docs/COMPANION_DEPLOYMENT.md), and [report/nutrition policy](docs/REPORT_POLICY.md).
+On 24 October 2026, the backed-up Supabase database was upgraded through `014`. Existing records were preserved, and the API and both workers use its TLS Session pooler. All 33 app tables deny direct public client access. Isolated Supabase checks passed guardian email binding, one-use invitations, role separation, SOS deduplication, inbox ownership, revocation, event-reminder storage and AI food storage. Firebase verification and FCM sends were mocked only in that isolated integration process; two-phone push delivery still needs a device test. See [phone testing](docs/PHONE_TESTING.md), [deployment](docs/COMPANION_DEPLOYMENT.md), and [report/food policy](docs/REPORT_POLICY.md).
 
 ## Problem statement
 
@@ -95,7 +97,7 @@ Firebase Authentication establishes identity. Backend PostgreSQL memberships and
 
 Source: [`backend/`](backend), [`dashboard/`](dashboard), [`patient_app/`](patient_app), [`firmware/`](firmware), [`simulation/wokwi/`](simulation/wokwi), [backend architecture](docs/BACKEND_ARCHITECTURE.md), and [clinical feedback notes](docs/clinical_feedback_implementation.md).
 
-The new phases add migrations `010`–`012`, server-only database access rules in `013`, a companion worker, OpenAI multimodal extraction/transcription, optional Android Firebase Messaging, and Daily video through web frames/Android WebView. See the [deployment guide](docs/COMPANION_DEPLOYMENT.md) for current setup.
+The new phases add migrations `010`–`012`, server-only database access rules in `013`, guardian linking/SOS notifications in `014`, a companion worker, OpenAI multimodal extraction/transcription, optional Android Firebase Messaging, and Daily video through web frames/Android WebView. See the [deployment guide](docs/COMPANION_DEPLOYMENT.md) for current setup.
 
 ## Product demo
 
@@ -161,7 +163,7 @@ Set-Location backend
 ..\.venv\Scripts\python.exe -m flask --app 'app:create_app()' run --host 127.0.0.1 --port 8000 --no-reload
 ```
 
-The migration helper applies missing migrations `001` through `012` in order and reasserts the idempotent server-only access rules in `013`, committing all pending changes together. `scripts/seed_demo.py` can create synthetic fixtures in a disposable development database. Its deliberately public demo device credentials must never be used for real patients or production.
+The migration helper applies missing migrations through `014`, reasserting the idempotent server-only access rules in `013` and committing pending changes together. `scripts/seed_demo.py` can create synthetic fixtures in a disposable development database. Its deliberately public demo device credentials must never be used for real patients or production.
 
 Run the retry worker separately from `backend/`:
 
@@ -212,9 +214,9 @@ Requests set `store=false`; provider retention terms still apply. Confirmed conc
 
 ### AI Impact Statement (under 200 words)
 
-MaatriWatch uses AI for supportive maternal-care conversation, Malayalam/English transcription, structured symptom/report extraction, and evidence-linked concern summaries. Responses use configurable `gpt-5-mini`; recorded transcription defaults to `gpt-transcribe`. These choices remain subject to account availability and quality evaluation. Persistent memory and uploaded-health context require separate user opt-ins.
+MaatriWatch uses AI for supportive maternal-care conversation, Malayalam/English transcription, structured symptom/report extraction, evidence-linked concern summaries, and preference-aware food guidance. Responses use configurable `gpt-5-mini`; recorded transcription defaults to `gpt-transcribe`. These choices remain subject to account availability and quality evaluation. Persistent memory and uploaded-health context require separate user opt-ins.
 
-Clinical comparisons, alert rules, reminder scheduling, and the explicit allergen-labelled meal catalog are deterministic. AI does not diagnose PPD or other conditions, prescribe treatment, or certify wearable safety. Extracted report values require confirmation; personalised meal drafts require clinician review.
+Clinical comparisons, alert rules, reminder scheduling and food exclusion checks are deterministic. AI selects and explains food suggestions after consent. AI does not diagnose PPD or other conditions, prescribe treatment, or certify wearable safety. Extracted values require confirmation; food suggestions require clinician review.
 
 Demo data is synthetic. Real records require consent and hospital governance. Original code uses Apache-2.0; dependencies and providers retain their terms. Audio/report extraction files are not retained by the new extraction endpoints; confirmed records are stored. Provider requests set `store=false`, without claiming zero provider retention.
 

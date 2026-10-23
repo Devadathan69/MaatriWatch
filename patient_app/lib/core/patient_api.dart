@@ -20,6 +20,29 @@ class PatientApi {
   final http.Client _client;
   final String _baseUrl;
   final bool _demoMode;
+  Future<Map<String, dynamic>> accountAccess() =>
+      _request('GET', '/account/access');
+  Future<Map<String, dynamic>> guardianHome() =>
+      _request('GET', '/guardian/home');
+  Future<Map<String, dynamic>> linkGuardian(String code) =>
+      _request('POST', '/guardian/link', body: {'code': code});
+  Future<Map<String, dynamic>> patientGuardians() =>
+      _request('GET', '/patient/guardians');
+  Future<Map<String, dynamic>> inviteGuardian(String email) =>
+      _request('POST', '/patient/guardians', body: {'email': email});
+  Future<Map<String, dynamic>> removeGuardian(String id) =>
+      _request('DELETE', '/patient/guardians/$id');
+  Future<Map<String, dynamic>> readGuardianNotification(String id) =>
+      _request('PATCH', '/guardian/notifications/$id', body: {});
+  Future<Map<String, dynamic>> registerGuardianPushToken(
+    String token, {
+    bool remove = false,
+  }) => _request(
+    remove ? 'DELETE' : 'POST',
+    '/guardian/push-device',
+    body: {'token': token},
+  );
+
   Future<Map<String, dynamic>> registerPushToken(String token,
           {bool remove = false}) =>
       _request(remove ? 'DELETE' : 'POST', '/patient/companion/push-device',
@@ -34,7 +57,7 @@ class PatientApi {
   Future<Map<String, dynamic>> changeConsultation(String id, String action,
           {String? slotId}) =>
       _request('PATCH', '/patient/consultations/$id',
-          body: {'action': action, if (slotId != null) 'slot_id': slotId});
+          body: {'action': action, 'slot_id': ?slotId});
   Future<Map<String, dynamic>> joinConsultation(String id) =>
       _request('POST', '/patient/consultations/$id/join',
           body: {'video_consent': true});
@@ -50,11 +73,8 @@ class PatientApi {
   Future<Map<String, dynamic>> nutritionPreferences(
           Map<String, dynamic> values) =>
       _request('PUT', '/patient/nutrition', body: values);
-  Future<Map<String, dynamic>> createMealPlan(String reportId) =>
-      _request('POST', '/patient/nutrition', body: {'report_id': reportId});
-  Future<Map<String, dynamic>> changeMeal(
-          String id, Map<String, dynamic> values) =>
-      _request('PATCH', '/patient/nutrition/plans/$id', body: values);
+  Future<Map<String, dynamic>> analyseFoods(String reportId) =>
+      _request('POST', '/patient/nutrition', body: {'report_id': reportId, 'processing_consent': true});
   Future<Map<String, dynamic>> extractReportFile(
       Uint8List bytes, String filename) async {
     final request = http.MultipartRequest(
@@ -163,7 +183,7 @@ class PatientApi {
   Future<Map<String, dynamic>> sendMessage(String body, {String? inReplyTo}) =>
       _request('POST', '/patient/messages', body: {
         'body': body,
-        if (inReplyTo != null) 'in_reply_to': inReplyTo,
+        'in_reply_to': ?inReplyTo,
       });
   Future<Map<String, dynamic>> askAssistant(String message) =>
       _request('POST', '/patient/assistant', body: {'message': message});

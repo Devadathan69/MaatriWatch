@@ -97,11 +97,17 @@ client.put(
         "allergens": [],
         "dislikes": [],
         "allergies_confirmed": True,
+        "sweet_preference": "sometimes",
+        "morning_sickness": False,
+        "appetite": "usual",
+        "spice_preference": "mild",
     },
 )
-client.post(
-    "/api/v1/patient/nutrition", headers=headers, json={"report_id": report["id"]}
-)
+if args.with_openai:
+    client.post(
+        "/api/v1/patient/nutrition", headers=headers,
+        json={"report_id": report["id"], "processing_consent": True}
+    )
 client.post(
     "/api/v1/patient/concerns",
     headers=headers,

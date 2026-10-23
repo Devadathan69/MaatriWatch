@@ -772,7 +772,7 @@ class _DemoCareMessagesPageState extends State<DemoCareMessagesPage> {
               child: ListView.separated(
                 padding: const EdgeInsets.all(20),
                 itemCount: _messages.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, index) => Align(
                   alignment: _messages[index].startsWith('You:')
                       ? Alignment.centerRight

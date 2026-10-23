@@ -25,33 +25,45 @@ void main() {
     expect(result.sublist(44), [1, 2, 3, 4]);
   });
   testWidgets(
-      'manual concerns work without AI consent and require confirmation',
-      (tester) async {
-    final api = _Api();
-    await tester.pumpWidget(MaterialApp(home: ConcernsPage(api: api)));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-        find.byType(TextField).first, 'A recurring headache');
-    final vertical = find
-        .byWidgetPredicate(
-            (w) => w is Scrollable && w.axisDirection == AxisDirection.down)
-        .first;
-    await tester.scrollUntilVisible(find.text('Enter details myself'), 100,
-        scrollable: vertical);
-    await tester.tap(find.text('Enter details myself'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-        find.widgetWithText(TextFormField, 'Symptom in your words'), 150,
-        scrollable: vertical);
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Symptom in your words'),
-        'Headache');
-    expect(api.saved, isNull);
-    await tester.scrollUntilVisible(find.text('Confirm and save report'), 150,
-        scrollable: vertical);
-    await tester.tap(find.text('Confirm and save report'));
-    await tester.pumpAndSettle();
-    expect(api.saved?['confirmed'], true);
-    expect(api.saved?['symptoms'][0]['name'], 'Headache');
-  });
+    'manual concerns work without AI consent and require confirmation',
+    (tester) async {
+      final api = _Api();
+      await tester.pumpWidget(MaterialApp(home: ConcernsPage(api: api)));
+      await tester.pumpAndSettle();
+      expect(find.text('Upload audio'), findsNothing);
+      expect(find.text('Your recording as text'), findsNothing);
+      final vertical = find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Symptom'),
+        150,
+        scrollable: vertical,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Symptom'),
+        'Headache',
+      );
+      expect(api.saved, isNull);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Save to my history'),
+        150,
+        scrollable: vertical,
+      );
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'Save to my history'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Save to my history'));
+      await tester.pumpAndSettle();
+      expect(api.saved?['confirmed'], true);
+      expect(api.saved?['entry_mode'], 'manual');
+      expect(api.saved?['original_text'], '');
+      expect(api.saved?['symptoms'][0]['name'], 'Headache');
+    },
+  );
 }

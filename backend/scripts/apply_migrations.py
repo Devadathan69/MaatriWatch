@@ -2,7 +2,8 @@
 
 This is intentionally small for the hackathon demo: it inspects the schema,
 then applies 001 through 012 in order as needed and reasserts the idempotent
-013 server-only access rules. All changes commit together, or roll back on
+013 server-only access rules, then adds 014 guardian notifications if missing.
+All changes commit together, or roll back on
 failure. It never prints the connection URL or values from .env.
 """
 
@@ -101,6 +102,10 @@ def main() -> int:
             if push_missing:
                 apply_file(connection, "012_reminder_push_devices.sql")
             apply_file(connection, "013_server_only_tables.sql")
+            with connection.cursor() as cursor:
+                guardians_missing = not table_exists(cursor, "guardian_invitations")
+            if guardians_missing:
+                apply_file(connection, "014_guardian_notifications.sql")
     except OperationalError:
         print("Could not connect to Postgres. Check DATABASE_URL without printing it.", file=sys.stderr)
         return 1
