@@ -7,6 +7,7 @@ import '../../core/patient_api.dart';
 import '../../core/patient_realtime.dart';
 import 'patient_followup.dart';
 import 'patient_health_actions.dart';
+import 'companion_page.dart';
 
 /// Patient-facing safety companion. It routes concerns to care teams; it does not diagnose.
 class PatientHome extends StatefulWidget {
@@ -203,6 +204,16 @@ class _PatientHomeState extends State<PatientHome> {
             color: MaatriTokens.warning),
       const SizedBox(height: 16),
       _Safety(onTap: () => setState(() => _page = 2)),
+      const SizedBox(height: 12),
+      Card(
+          child: ListTile(
+        leading: const Icon(Icons.spa_outlined),
+        title: const Text('Your MaatriCare companion'),
+        subtitle:
+            const Text('A place to talk, remember, and take one small step.'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _openAssistant,
+      )),
       const SizedBox(height: 12),
       _alertStatus(),
       const SizedBox(height: 20),
@@ -689,7 +700,7 @@ class _PatientHomeState extends State<PatientHome> {
 
   Future<void> _openAssistant() async {
     await Navigator.of(context).push<void>(
-        MaterialPageRoute(builder: (_) => PatientAssistantPage(api: _api)));
+        MaterialPageRoute(builder: (_) => CompanionPage(api: _api)));
   }
 
   Future<void> _openActivity() async {

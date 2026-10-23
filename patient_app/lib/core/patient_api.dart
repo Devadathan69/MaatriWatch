@@ -1,19 +1,56 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'runtime_config.dart';
 
 class PatientApi {
-  PatientApi({http.Client? client, String? baseUrl})
+  PatientApi({http.Client? client, String? baseUrl, bool demoMode = false})
       : _client = client ?? http.Client(),
+        _demoMode = demoMode,
         _baseUrl = (baseUrl ?? PatientRuntimeConfig.apiUri.toString())
-            .replaceFirst(RegExp(r'/$'), '');
+            .replaceFirst(RegExp(r'/$'), '') {
+    if (demoMode && kReleaseMode) {
+      throw StateError('Demo credentials are blocked in release builds');
+    }
+  }
 
   final http.Client _client;
   final String _baseUrl;
+  final bool _demoMode;
+  Future<Map<String, String>> authorizationHeaders() async {
+    if (_demoMode && !kReleaseMode) {
+      return {'Accept': 'application/json', 'X-Demo-Role': 'patient'};
+    }
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw const PatientApiException('Please sign in again to continue.', 401);
+    }
+    return {'Accept': 'application/json', 'Authorization': 'Bearer $token'};
+  }
+
+  Future<Map<String, dynamic>> companion() =>
+      _request('GET', '/patient/companion');
+  Future<Map<String, dynamic>> companionPreferences(
+          Map<String, dynamic> values) =>
+      _request('PUT', '/patient/companion', body: values);
+  Future<Map<String, dynamic>> companionChat(String message) =>
+      _request('POST', '/patient/companion/chat', body: {'message': message});
+  Future<Map<String, dynamic>> saveMemory(String value) =>
+      _request('POST', '/patient/companion/memories', body: {'text': value});
+  Future<Map<String, dynamic>> deleteMemory(String id) =>
+      _request('DELETE', '/patient/companion/memories/$id');
+  Future<Map<String, dynamic>> clearCompanionHistory() =>
+      _request('DELETE', '/patient/companion/messages');
+  Future<Map<String, dynamic>> createReminder(Map<String, dynamic> values) =>
+      _request('POST', '/patient/companion/reminders', body: values);
+  Future<Map<String, dynamic>> changeReminder(String id, String action) =>
+      _request('PATCH', '/patient/companion/reminders/$id',
+          body: {'action': action});
+  Future<Map<String, dynamic>> checkReminders() =>
+      _request('POST', '/patient/companion/reminders/check');
   Future<Map<String, dynamic>> home() => _request('GET', '/patient/home');
   Future<Map<String, dynamic>> sos(String note) =>
       _request('POST', '/patient/sos', body: {'note': note});
@@ -78,14 +115,10 @@ class PatientApi {
     required String documentType,
     String? confirmedText,
   }) async {
-    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw const PatientApiException('Please sign in again to continue.', 401);
-    }
+    final headers = await authorizationHeaders();
     final request = http.MultipartRequest(
         'POST', Uri.parse('$_baseUrl/patient/report-documents'))
-      ..headers.addAll(
-          {'Accept': 'application/json', 'Authorization': 'Bearer $token'})
+      ..headers.addAll(headers)
       ..fields.addAll({
         'document_type': documentType,
         'media_type': mediaType,
@@ -100,15 +133,11 @@ class PatientApi {
 
   Future<Map<String, dynamic>> _request(String method, String path,
       {Map<String, dynamic>? body}) async {
-    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw const PatientApiException('Please sign in again to continue.', 401);
-    }
+    final headers = await authorizationHeaders();
     final response = await _client
         .send(http.Request(method, Uri.parse('$_baseUrl$path'))
           ..headers.addAll({
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
+            ...headers,
             if (body != null) 'Content-Type': 'application/json'
           })
           ..body = body == null ? '' : jsonEncode(body))

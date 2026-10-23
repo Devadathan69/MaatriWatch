@@ -86,6 +86,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(MaterialApp(home: PatientHome(api: _PatientApi())));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('PPG-derived heart rate'), 150);
     expect(find.text('PPG-derived heart rate'), findsOneWidget);
     expect(find.textContaining('MAX30102 PPG'), findsWidgets);
     expect(find.text('Device / skin-adjacent temperature'), findsOneWidget);
@@ -109,6 +110,7 @@ void main() {
       'freshness': 'current',
     });
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('81 bpm'), 150);
     expect(find.text('81 bpm'), findsOneWidget);
     expect(find.text('97 %'), findsOneWidget);
     await liveVitals.controller.close();

@@ -88,6 +88,10 @@ def main() -> int:
                 apply_file(connection, "008_patient_lab_and_wellbeing.sql")
             if phase_nine_missing:
                 apply_file(connection, "009_clinical_followup_and_validation.sql")
+            with connection.cursor() as cursor:
+                companion_missing = not table_exists(cursor, "companion_records")
+            if companion_missing:
+                apply_file(connection, "010_companion_memory.sql")
     except OperationalError:
         print("Could not connect to Postgres. Check DATABASE_URL without printing it.", file=sys.stderr)
         return 1

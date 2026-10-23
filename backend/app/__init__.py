@@ -18,6 +18,7 @@ from .ingestion import ingestion_bp
 from .patient import patient_bp
 from .devices import devices_bp
 from .provisioning import provisioning_bp
+from .companion import companion_bp
 from .outbox import deliver_pending_outbox
 
 
@@ -41,6 +42,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(patient_bp, url_prefix="/api/v1")
     app.register_blueprint(devices_bp, url_prefix="/api/v1")
     app.register_blueprint(provisioning_bp, url_prefix="/api/v1")
+    app.register_blueprint(companion_bp, url_prefix="/api/v1")
 
     @app.before_request
     def protect_ingestion_payload_size():

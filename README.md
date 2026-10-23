@@ -4,6 +4,17 @@ Connected maternal-care support through a wearable prototype, a patient companio
 
 **AIBoomi Startup Weekend Kochi baseline — 23 October 2026.** This README follows the participants' handbook outline and describes the code already present before further weekend development. Existing features are prior work, not claimed hackathon achievements.
 
+## Weekend development progress
+
+The [four-phase implementation plan](docs/IMPLEMENTATION_PLAN.md) tracks the requested companion, bilingual concerns, report/nutrition, and video-consultation work. The feature inventory below remains the disclosed **prior-work baseline**.
+
+- **Phase 1:** personal companion with opt-in memory, inspect/delete controls, separately consented health context, English/Malayalam replies, and timezone-aware reminders/inbox. The server reminder worker must run continuously; device push delivery is not included yet.
+- **Phases 2–4:** planned, not yet delivered.
+
+Apply migration `010_companion_memory.sql` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
+
+Run credential-isolated backend tests with `.\.venv\Scripts\python.exe backend/scripts/run_tests.py` from the repository root.
+
 ## Problem statement
 
 Pregnant and postpartum patients need a practical way to share changes in their wellbeing with their care team between visits. Clinicians need patient-linked readings, symptoms, and follow-up information in one place, with clear signals that need human review. MaatriWatch connects those workflows in an engineering prototype.
