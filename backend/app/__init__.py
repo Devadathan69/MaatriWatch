@@ -22,6 +22,8 @@ from .companion import companion_bp
 from .concerns import concerns_bp
 from .reports import reports_bp
 from .nutrition import nutrition_bp
+from .consultations import consultations_bp
+from .reminder_push import push_bp
 from .outbox import deliver_pending_outbox
 
 
@@ -49,6 +51,8 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(concerns_bp, url_prefix="/api/v1")
     app.register_blueprint(reports_bp, url_prefix="/api/v1")
     app.register_blueprint(nutrition_bp, url_prefix="/api/v1")
+    app.register_blueprint(consultations_bp, url_prefix="/api/v1")
+    app.register_blueprint(push_bp, url_prefix="/api/v1")
 
     @app.before_request
     def protect_ingestion_payload_size():
@@ -69,7 +73,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         origin = request.headers.get("Origin", "").rstrip("/")
         if origin and origin in app.config.get("CORS_ALLOWED_ORIGINS", ()):
             response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, PUT, OPTIONS"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Demo-Role"
             response.headers["Access-Control-Max-Age"] = "600"
             response.headers.add("Vary", "Origin")

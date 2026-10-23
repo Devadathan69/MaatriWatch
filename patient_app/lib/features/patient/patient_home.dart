@@ -10,6 +10,7 @@ import 'patient_health_actions.dart';
 import 'companion_page.dart';
 import 'concerns_page.dart';
 import 'nutrition_page.dart';
+import 'consultations_page.dart';
 
 /// Patient-facing safety companion. It routes concerns to care teams; it does not diagnose.
 class PatientHome extends StatefulWidget {
@@ -311,6 +312,16 @@ class _PatientHomeState extends State<PatientHome> {
     final completedCheckins = wellbeing['completed_this_week'] ?? 0;
     final recommendedCheckins = wellbeing['recommended_checkins_per_week'] ?? 2;
     return ListView(padding: const EdgeInsets.all(20), children: [
+      Card(
+          child: ListTile(
+              leading: const Icon(Icons.video_camera_front_outlined),
+              title: const Text('Book a video consultation'),
+              subtitle:
+                  const Text('Choose a time with your hospital care team.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push<void>(MaterialPageRoute(
+                  builder: (_) => ConsultationsPage(api: _api))))),
+      const SizedBox(height: 12),
       Card(
           child: ListTile(
               leading: const Icon(Icons.restaurant_menu_outlined),

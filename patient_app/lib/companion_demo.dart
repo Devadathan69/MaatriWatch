@@ -5,6 +5,7 @@ import 'core/patient_api.dart';
 import 'features/patient/companion_page.dart';
 import 'features/patient/concerns_page.dart';
 import 'features/patient/nutrition_page.dart';
+import 'features/patient/consultations_page.dart';
 
 /// Explicit local integration demo, separate from the original offline mock app.
 void main() {
@@ -47,7 +48,8 @@ class _DemoHubState extends State<_DemoHub> {
               child: IndexedStack(index: _index, children: [
             CompanionPage(api: widget.api),
             ConcernsPage(api: widget.api),
-            NutritionPage(api: widget.api)
+            NutritionPage(api: widget.api),
+            ConsultationsPage(api: widget.api)
           ])),
         ]),
         bottomNavigationBar: NavigationBar(
@@ -59,7 +61,9 @@ class _DemoHubState extends State<_DemoHub> {
               NavigationDestination(
                   icon: Icon(Icons.mic_none), label: 'Concerns'),
               NavigationDestination(
-                  icon: Icon(Icons.restaurant_menu_outlined), label: 'Nourish')
+                  icon: Icon(Icons.restaurant_menu_outlined), label: 'Nourish'),
+              NavigationDestination(
+                  icon: Icon(Icons.videocam_outlined), label: 'Consultations')
             ]),
       );
 }

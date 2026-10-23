@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/patient_realtime.dart';
+import '../../core/patient_api.dart';
+import '../../core/device_reminders.dart';
 import '../patient/patient_home.dart';
 
 class PatientAuthGate extends StatelessWidget {
@@ -13,6 +15,10 @@ class PatientAuthGate extends StatelessWidget {
 
   final FirebaseAuth auth;
   final bool allowUnverifiedEmail;
+  Future<void> _signOut() async {
+    await DeviceReminders.disable(PatientApi());
+    await auth.signOut();
+  }
 
   @override
   Widget build(BuildContext context) => StreamBuilder<User?>(
@@ -29,8 +35,8 @@ class PatientAuthGate extends StatelessWidget {
             return _EmailVerificationPage(auth: auth, user: user);
           }
           return PatientHome(
-            onSignOut: auth.signOut,
-            onAccessDenied: auth.signOut,
+            onSignOut: _signOut,
+            onAccessDenied: _signOut,
             liveVitals: FirebasePatientLiveVitalsSource(),
           );
         },

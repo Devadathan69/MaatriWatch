@@ -7,12 +7,14 @@ from .care_records import PostgresRecords
 from .companion import deliver_due
 from .db import get_db
 from .concerns import finalize_previous_month
+from .consultations import reconcile_appointments
 
 
 def tick():
+    reconcile_appointments()
     with get_db().cursor() as cur:
         cur.execute("""SELECT DISTINCT p.id,p.hospital_id FROM patients p JOIN companion_records r ON r.patient_id=p.id
-            WHERE p.is_active=true AND (r.kind='concern' OR
+            WHERE p.is_active=true AND (r.kind='concern' OR (r.kind='notification' AND r.data->>'push_status'='pending') OR
                 (r.kind='reminder' AND r.data->>'status'='active' AND (r.data->>'due_at')::timestamptz <= now()))""")
         patients = cur.fetchall()
     return sum(deliver_due(PostgresRecords(p)) + finalize_previous_month(PostgresRecords(p)) for p in patients)

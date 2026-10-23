@@ -9,6 +9,7 @@ import '../../core/models.dart';
 import '../../core/realtime_service.dart';
 import '../../widgets/status_chip.dart';
 import 'patient_detail_page.dart';
+import 'consultations_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({
@@ -337,6 +338,13 @@ class _DashboardPageState extends State<DashboardPage> {
               hintText: 'Briefly record the clinical handoff or outcome.'),
         ),
         actions: [
+          IconButton(
+              tooltip: 'Video consultation schedule',
+              icon: const Icon(Icons.video_camera_front_outlined),
+              onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                      builder: (_) => ClinicianConsultationsPage(
+                          api: widget.api, hospitalId: _hospital.hospitalId)))),
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),

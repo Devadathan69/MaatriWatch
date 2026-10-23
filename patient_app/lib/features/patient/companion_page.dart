@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/patient_api.dart';
+import '../../core/device_reminders.dart';
 
 /// Patient-controlled continuity. Background delivery is a server responsibility.
 class CompanionPage extends StatefulWidget {
@@ -435,7 +436,20 @@ class _CompanionPageState extends State<CompanionPage> {
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             const Text(
-                'Your reminder inbox is kept by the server worker. Open the app to see it; device push notifications are not configured in this release.'),
+                'Your reminder inbox is kept by the server worker. In a configured Android app, you can also enable gentle phone notifications. Delivery depends on your connection and device settings.'),
+            Wrap(spacing: 8, children: [
+              TextButton.icon(
+                  onPressed: () => _act(() async {
+                        await DeviceReminders.enable(widget.api);
+                      }),
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: const Text('Enable phone reminders')),
+              TextButton(
+                  onPressed: () => _act(() async {
+                        await DeviceReminders.disable(widget.api);
+                      }),
+                  child: const Text('Turn off on this device')),
+            ]),
             const SizedBox(height: 16),
             FilledButton.icon(
                 onPressed: _reminder,

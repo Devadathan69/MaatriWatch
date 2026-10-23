@@ -447,15 +447,20 @@ class _NutritionPageState extends State<NutritionPage> {
                   final date =
                       DateTime.parse(data['days'][i]['date'] as String);
                   return ChoiceChip(
-                      label: Text('${[
-                        'Mon',
-                        'Tue',
-                        'Wed',
-                        'Thu',
-                        'Fri',
-                        'Sat',
-                        'Sun'
-                      ][date.weekday - 1]} ${date.day}'),
+                      showCheckmark: false,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+                      label: Text(
+                          '${[
+                            'Mon',
+                            'Tue',
+                            'Wed',
+                            'Thu',
+                            'Fri',
+                            'Sat',
+                            'Sun'
+                          ][date.weekday - 1]} ${date.day}',
+                          softWrap: false,
+                          overflow: TextOverflow.visible),
                       selected: _day == i,
                       onSelected: (_) => setState(() => _day = i));
                 })),

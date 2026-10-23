@@ -20,6 +20,24 @@ class PatientApi {
   final http.Client _client;
   final String _baseUrl;
   final bool _demoMode;
+  Future<Map<String, dynamic>> registerPushToken(String token,
+          {bool remove = false}) =>
+      _request(remove ? 'DELETE' : 'POST', '/patient/companion/push-device',
+          body: {'token': token});
+  Future<Map<String, dynamic>> consultationSlots() =>
+      _request('GET', '/patient/consultations/slots');
+  Future<Map<String, dynamic>> consultations() =>
+      _request('GET', '/patient/consultations');
+  Future<Map<String, dynamic>> bookConsultation(String slotId, String reason) =>
+      _request('POST', '/patient/consultations',
+          body: {'slot_id': slotId, 'reason': reason});
+  Future<Map<String, dynamic>> changeConsultation(String id, String action,
+          {String? slotId}) =>
+      _request('PATCH', '/patient/consultations/$id',
+          body: {'action': action, if (slotId != null) 'slot_id': slotId});
+  Future<Map<String, dynamic>> joinConsultation(String id) =>
+      _request('POST', '/patient/consultations/$id/join',
+          body: {'video_consent': true});
   Future<Map<String, dynamic>> reportAnalyses() =>
       _request('GET', '/patient/reports/analyses');
   Future<Map<String, dynamic>> extractReportText(String value) =>

@@ -43,7 +43,7 @@ Status: implemented. 72 backend, 15 patient, and four dashboard tests pass; both
 
 ## Phase 4 — Booking and private video consultations
 
-Status: planned.
+Status: implemented. 79 backend tests, 17 patient widget tests, and four dashboard tests pass; both analyzers clean. Android debug APK and patient web release builds succeeded. Browser booking with synthetic data was verified. Actual PostgreSQL/provider calls, native camera/microphone behavior, and push delivery remain staging/device checks. Optional Android FCM delivery is also integrated with the reminder worker.
 
 - Clinician publishes hospital-scoped availability. Patient books a slot with timezone-aware confirmation; database constraints prevent double booking.
 - Both sides see upcoming visits; cancellation/rescheduling releases availability with audit history.
@@ -75,3 +75,12 @@ After implementation, replace baseline-only wording with a dated distinction bet
 
 
 
+
+## Phase commits
+
+| Phase | Published commit |
+| --- | --- |
+| Personal companion | `2ab7aee` |
+| Speak Your Concern | `dfa1db7` |
+| Reports and nutrition | `582a0fa` |
+| Consultation and reminder delivery | This phase-4 commit |

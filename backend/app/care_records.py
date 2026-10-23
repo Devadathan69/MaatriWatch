@@ -80,6 +80,8 @@ class MemoryRecords:
                 (r for r in self.list(kind, 10000) if stable_key is not None and r['stable_key'] == stable_key), None)
             if identifier and prior is None:
                 abort(404, description='Record not found')
+            if kind == 'notification' and prior is not None and identifier is None:
+                return deepcopy(prior)
             now = datetime.now(timezone.utc).isoformat()
             row = {**(prior or {}), 'id': prior['id'] if prior else str(uuid4()),
                    'hospital_id': str(self.patient['hospital_id']), 'patient_id': str(self.patient['id']),
@@ -131,7 +133,7 @@ class PostgresRecords:
             else:
                 cur.execute('''INSERT INTO companion_records(hospital_id,patient_id,kind,data,stable_key)
                     VALUES (%s,%s,%s,%s,%s) ON CONFLICT(patient_id,kind,stable_key)
-                    DO UPDATE SET data=EXCLUDED.data,updated_at=now()
+                    DO UPDATE SET data=CASE WHEN companion_records.kind='notification' THEN companion_records.data ELSE EXCLUDED.data END,updated_at=now()
                     WHERE companion_records.hospital_id=EXCLUDED.hospital_id RETURNING *''', (*self.scope, kind, Jsonb(data), stable_key))
             row = cur.fetchone()
             if not row:

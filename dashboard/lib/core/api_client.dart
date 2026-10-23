@@ -25,6 +25,24 @@ class ApiClient {
   final http.Client _client;
   final String _baseUrl;
   final String? demoRole;
+  Future<Map<String, dynamic>> consultationSlots(String hospitalId) =>
+      _request('GET', '/hospitals/$hospitalId/consultation-slots');
+  Future<Map<String, dynamic>> consultations(String hospitalId) =>
+      _request('GET', '/hospitals/$hospitalId/consultations');
+  Future<Map<String, dynamic>> publishConsultation(
+          String hospitalId, String start, String end) =>
+      _request('POST', '/hospitals/$hospitalId/consultation-slots',
+          body: {'start_at': start, 'end_at': end});
+  Future<Map<String, dynamic>> closeConsultationSlot(
+          String hospitalId, String id) =>
+      _request('DELETE', '/hospitals/$hospitalId/consultation-slots/$id');
+  Future<Map<String, dynamic>> changeConsultation(
+          String hospitalId, String id, String action) =>
+      _request('PATCH', '/hospitals/$hospitalId/consultations/$id',
+          body: {'action': action});
+  Future<Map<String, dynamic>> joinConsultation(String hospitalId, String id) =>
+      _request('POST', '/hospitals/$hospitalId/consultations/$id/join',
+          body: {'video_consent': true});
   Future<Map<String, dynamic>> patientNutrition(
           String hospitalId, String patientId) =>
       _request('GET', '/hospitals/$hospitalId/patients/$patientId/nutrition');

@@ -239,13 +239,15 @@ def deliver_due(repo, now=None):
             continue
         # Unique patient/kind/stable_key makes retries and concurrent workers idempotent.
         repo.put('notification', {'title': data['title'], 'reminder_id': row['id'], 'due_at': due.isoformat(),
-                                  'channel': 'in_app', 'status': 'unread'}, stable_key=f"{row['id']}:{due.isoformat()}")
+                                  'channel': 'in_app', 'status': 'unread', 'push_status':'pending'}, stable_key=f"{row['id']}:{due.isoformat()}")
         next_due = next_occurrence(due, data['recurrence'], data['timezone'], now)
         data.update(status='active' if next_due else 'completed', last_delivered_at=now.isoformat())
         if next_due:
             data['due_at'] = next_due.isoformat()
         repo.put('reminder', data, row['id'])
         delivered += 1
+    from .reminder_push import send_pending
+    send_pending(repo,now)
     return delivered
 
 

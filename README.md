@@ -2,22 +2,24 @@
 
 Connected maternal-care support through a wearable prototype, a patient companion app, and a clinician dashboard.
 
-**AIBoomi Startup Weekend Kochi baseline — 23 October 2026.** This README follows the participants' handbook outline and describes the code already present before further weekend development. Existing features are prior work, not claimed hackathon achievements.
+**AIBoomi Startup Weekend Kochi — 23 October 2026.** This README follows the participants' handbook outline, separates prior work from the four new development phases, and records the prototype's verification and deployment limits.
 
 ## Weekend development progress
 
 The [four-phase implementation plan](docs/IMPLEMENTATION_PLAN.md) tracks the requested companion, bilingual concerns, report/nutrition, and video-consultation work. The feature inventory below remains the disclosed **prior-work baseline**.
 
-- **Phase 1:** personal companion with opt-in memory, inspect/delete controls, separately consented health context, English/Malayalam replies, and timezone-aware reminders/inbox. The server reminder worker must run continuously; device push delivery is not included yet.
+- **Phase 1:** personal companion with opt-in memory, inspect/delete controls, separately consented health context, English/Malayalam replies, and timezone-aware reminders/inbox. The server reminder worker must run continuously. Phase 4 also adds optional Android Firebase notifications with generic lock-screen text and device opt-in.
 - **Phase 2:** English/Malayalam short audio transcription and typed concerns, editable structured symptoms, confirmation and sharing controls, recurring-symptom history, source-linked monthly summaries, and a clinician summary panel. Optional automatic AI month-end handoffs require explicit opt-in and the worker. Audio is not retained by the app; native/browser microphone behavior and real provider transcription still require device/integration validation.
 - **Phase 3:** PDF/image/text report extraction with editable confirmation, versioned pregnancy-specific comparisons, and the Nourish meal planner. It includes seven-day meal drafts, original food illustrations, ingredients, shopping lists, allergy/preferences filtering, safe swap checks, and a clinician review panel. Plans use a bounded, explicit food catalog; they are not clinically validated nutrient prescriptions or a guarantee of extraction accuracy.
-- **Phase 4:** planned, not yet delivered.
+- **Phase 4:** clinician availability, patient booking/cancellation/transactional rescheduling, appointment reminders, and private Daily video integration for web/Android. Join access is limited to the booked patient/assigned clinician and the scheduled window; tokens expire and are not stored. Actual two-party calls and native notification delivery still require configured providers and device testing.
 
-Apply migration `010_companion_memory.sql` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
+Apply migrations `010`–`012` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-hostname localhost --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
 
 Run credential-isolated backend tests with `.\.venv\Scripts\python.exe backend/scripts/run_tests.py` from the repository root.
 
 For a credential-free synthetic demonstration of the new screens, run `.\.venv\Scripts\python.exe backend/scripts/run_local_demo.py` from the root, then start the connected Flutter demo above. It seeds a clearly labelled synthetic report, concern, and meal plan. Open **Nourish** to explore meal cards, reports, and the shopping list. AI and video provider calls are deliberately unconfigured in this fixture server.
+
+Current verification: **79 backend tests, 17 patient-app tests, and four dashboard tests passed**, with clean Flutter analysis for both apps. Android debug APK and patient web release builds succeeded. The synthetic web UI was inspected, including a confirmed booking. These checks do not validate medical accuracy, native permissions, real PostgreSQL transactions, or live provider calls. See [deployment and remaining integration work](docs/COMPANION_DEPLOYMENT.md) and [report/nutrition policy](docs/REPORT_POLICY.md).
 
 ## Problem statement
 
@@ -52,7 +54,7 @@ XIAO ESP32-S3 watch / HTTP simulator
 
 Firebase Authentication establishes identity. Backend PostgreSQL memberships and patient links determine access. PostgreSQL is the durable record; Firebase Realtime Database (RTDB) supplies live projections.
 
-### Features currently implemented
+### Prior-work feature inventory
 
 “Implemented” means present in source, subject to configuration and prototype limits. It does not imply a verified hosted deployment or clinical validation.
 
@@ -75,7 +77,7 @@ Firebase Authentication establishes identity. Backend PostgreSQL memberships and
 | MaatriCare AI assistant | Optional authenticated education chat through the OpenAI Responses API, local urgent-term handling, bounded messages, and per-process rate limiting. | [Assistant](backend/app/ai_chat.py). Requires a server-only key; cannot read clinical records or live watch data. |
 | Demo and simulation | Local role picker/in-memory clinician fixtures, debug-only patient presentation screens, HTTP device simulator, and Wokwi synthetic optical/temperature models. | Demo mode covers only a subset of workflows. [Wokwi](simulation/wokwi/README.md) prints synthetic telemetry without sending it to the patient database. |
 
-### Technology stack and tools
+### Prior-work technology stack and tools
 
 | Layer | Technologies |
 | --- | --- |
@@ -91,6 +93,8 @@ Firebase Authentication establishes identity. Backend PostgreSQL memberships and
 
 Source: [`backend/`](backend), [`dashboard/`](dashboard), [`patient_app/`](patient_app), [`firmware/`](firmware), [`simulation/wokwi/`](simulation/wokwi), [backend architecture](docs/BACKEND_ARCHITECTURE.md), and [clinical feedback notes](docs/clinical_feedback_implementation.md).
 
+The new phases add migrations `010`–`012`, a companion worker, OpenAI multimodal extraction/transcription, optional Android Firebase Messaging, and Daily video through web frames/Android WebView. See the [deployment guide](docs/COMPANION_DEPLOYMENT.md) for current setup.
+
 ## Product demo
 
 **Hosted app, video, or presentation link: pending.** No verified public product demo URL is recorded. Add the actual link before submission; local setup instructions do not replace the handbook's required product-demo link.
@@ -99,7 +103,7 @@ Suggested local demonstration: open the clinician demo, post a synthetic fall ev
 
 ## Setup & run
 
-Commands use PowerShell from the repository root unless a directory change is shown. Install Git, Python 3.11+, and Flutter with Dart 3.4+ compatible with the locked dependencies. Chrome is needed for the dashboard; Android tooling is needed for the patient app. Use a disposable database/project for demos.
+Commands use PowerShell from the repository root unless a directory change is shown. Install Git, Python 3.11+, and Flutter with Dart 3.10+ compatible with the locked dependencies. Chrome is needed for the dashboard; Android tooling is needed for the patient app. Use a disposable database/project for demos.
 
 ### 1. Dependencies and local configuration
 
@@ -155,7 +159,7 @@ Set-Location backend
 ..\.venv\Scripts\python.exe -m flask --app 'app:create_app()' run --host 127.0.0.1 --port 8000 --no-reload
 ```
 
-The migration helper applies missing migrations `001` through `009` in order. `scripts/seed_demo.py` can create synthetic fixtures in a disposable development database. Its deliberately public demo device credentials must never be used for real patients or production.
+The migration helper applies missing migrations `001` through `012` in order. `scripts/seed_demo.py` can create synthetic fixtures in a disposable development database. Its deliberately public demo device credentials must never be used for real patients or production.
 
 Run the retry worker separately from `backend/`:
 
@@ -176,7 +180,7 @@ Follow the [XIAO watch guide](firmware/xiao_watch_prototype/README.md), copying 
 ## Models & data
 
 - **Generative model:** MaatriCare defaults to `gpt-5-mini`, configurable through `OPENAI_CHAT_MODEL`, for short educational replies. No locally trained model, weights, fine-tuning dataset, or retrieval corpus is included. Comparative model-quality/cost evaluation is pending.
-- **Rules and parsing:** risk evaluation is deterministic and versioned; report-text extraction uses regular expressions. Motion hardware does not by itself implement a trained activity/fall classifier.
+- **Rules and parsing:** clinical risk/report comparisons and the bounded meal catalog are deterministic. The original narrow lab-text helper uses regular expressions; the new report flow supports multimodal PDF/image extraction with mandatory confirmation. Motion hardware does not itself implement a trained activity/fall classifier.
 - **Demo data:** the in-memory store, seed/simulator scripts, patient presentation screens, and Wokwi use synthetic examples. No external clinical dataset is bundled; fixtures are not evidence of clinical performance.
 - **Connected data:** patient profiles, symptoms, check-ins, reports, clinician records, and device readings require appropriate consent/permissions and hospital privacy/retention procedures before real use. Patient data must never be committed to Git.
 - **Licenses and attribution:** original project code uses [Apache-2.0](LICENSE). Third-party packages, Arduino libraries, Wokwi interfaces, datasets, fonts, and hosted APIs retain their own licenses/terms. Dependencies are declared in [requirements](backend/requirements.txt), [dashboard pubspec](dashboard/pubspec.yaml), [patient pubspec](patient_app/pubspec.yaml), firmware headers, and [Wokwi sources](simulation/wokwi/README.md). The [font directory](dashboard/assets/fonts/README.md) documents a proposed bundle; a complete regional font collection is not included. The code license grants no rights to patient data.
@@ -200,24 +204,26 @@ Baseline verification on 23 October 2026: 53 backend tests, nine patient-app tes
 
 Safeguards include backend authorization, restricted RTDB access, audit events, source labeling, human review of risk signals, confirmation of extracted lab values, and separation of clinician guidance from patient-reported information. A normal reading does not automatically resolve an alert.
 
-The AI route checks account linkage, bounds input/output, and matches a small English urgent-term list before model calls. Only the message and fixed instructions are sent; clinical records/telemetry are not automatically added, although users can type sensitive information. Requests set `store=false`, and this endpoint does not save chat in the clinical database; this is not a zero-provider-retention claim. Instructions prohibit diagnosis/prescribing and refer concerning questions to the care team. Keyword and prompt safeguards can miss paraphrases, non-English emergencies, hallucinations, and bias. Current AI tests check helpers, not model outputs. Multilingual safety, adversarial prompts, and answer quality still require evaluation.
+The companion checks account linkage and uses separate opt-ins for storing chat, recalling explicit memories, sharing health context, and scheduled AI summaries. Context is patient-scoped and bounded; it distinguishes patient-reported and clinician-confirmed information and measurement timestamps. Audio/report processing requires explicit consent and user confirmation. Model output schemas and source-ID/quote checks constrain format and provenance, but cannot establish medical correctness. Emergency keyword coverage is limited even with English/Malayalam terms; users must seek urgent care rather than wait for AI.
+
+Requests set `store=false`; provider retention terms still apply. Confirmed concerns, report readings, conversations enabled for memory, and plan/review records are stored by the application. The worker is responsible for reminders and scheduled summaries. Tests cover helpers, authorization, failure paths, and selected UI; real-model hallucination, bias, Malayalam speech accuracy, physical-device delivery, and clinical outcomes remain unvalidated.
 
 ### AI Impact Statement (under 200 words)
 
-MaatriWatch optionally augments maternal-care education through MaatriCare, an authenticated assistant using the OpenAI Responses API with configurable model selection, defaulting to `gpt-5-mini`. The implementation requests brief answers with bounded output; comparative model evaluation is pending. AI does not diagnose, prescribe, interpret reports, assess wearable safety, or generate clinical alerts. Alerts use deterministic rules.
+MaatriWatch uses AI for supportive maternal-care conversation, Malayalam/English transcription, structured symptom/report extraction, and evidence-linked concern summaries. Responses use configurable `gpt-5-mini`; recorded transcription defaults to `gpt-transcribe`. These choices remain subject to account availability and quality evaluation. Persistent memory and uploaded-health context require separate user opt-ins.
 
-Demo records and simulator readings are synthetic. No external training dataset or model weights are bundled. Connected patient records require consent and hospital governance; their contents are not automatically sent to the model. Original code uses Apache-2.0; dependencies and APIs retain separate terms.
+Clinical comparisons, alert rules, reminder scheduling, and the explicit allergen-labelled meal catalog are deterministic. AI does not diagnose PPD or other conditions, prescribe treatment, or certify wearable safety. Extracted report values require confirmation; personalised meal drafts require clinician review.
 
-Guardrails include local English urgent-term responses, account checks, input/output limits, process-local rate limits, educational instructions, and care-team referral. The endpoint requests `store=false` and does not save chat in the clinical database. Keyword coverage, model hallucinations, and multilingual bias remain unresolved risks. Helper tests exist; model-output and emergency-language evaluations remain pending.
+Demo data is synthetic. Real records require consent and hospital governance. Original code uses Apache-2.0; dependencies and providers retain their terms. Audio/report extraction files are not retained by the new extraction endpoints; confirmed records are stored. Provider requests set `store=false`, without claiming zero provider retention.
 
-The intended benefit is accessible education and clearer follow-up. No measured clinical improvement, validated screening accuracy, or business outcome is claimed.
+Guardrails include authorization, scoped context, schema/provenance checks, confirmation, urgent-language handling, and source-linked summaries. Software tests pass, but model accuracy, multilingual safety, medical thresholds in local practice, and nutrition adequacy require further validation. Intended outcomes are continuity and clearer care-team communication; no measured clinical benefit is claimed.
 
 ## Known limitations & risks
 
 - Hardware estimates are unvalidated. Skin/device temperature is not core body temperature; MAX30102 does not measure BP. Fall rules accept qualifying evidence, but the current watch has no validated fall classifier.
 - This prototype is not an emergency-response service. Delivery depends on connectivity, configured providers, and staffed care processes; no clinical response-time guarantee is established.
-- The wellbeing check-in is not a validated depression questionnaire. The system does not detect PPH, diagnose preeclampsia, prescribe treatment/diets, or interpret labs automatically.
-- Report upload and narrow text extraction exist; image OCR, complete clinician attachment review, and production document retention/encryption processes remain incomplete.
+- The wellbeing check-in is not a validated depression questionnaire. The system does not detect PPH, diagnose preeclampsia, or prescribe treatment/diets. Report comparisons cover a limited set of confirmed tests and do not establish a diagnosis.
+- Multimodal report extraction is implemented, but real-provider accuracy, complete clinician attachment review, and production document retention/encryption processes remain unverified or incomplete.
 - In-memory/demo roles cover a subset of features. Persistent storage, Firebase, Twilio, and OpenAI need separate setup and integration verification.
 - Complete local-language translation, validated multilingual AI safety, bundled regional fonts, offline store-and-forward, automatic activity tracking, signed OTA fleet updates, and a full admin interface are not implemented.
 - No public demo link, completed clinical validation results, or registered team roster is recorded. Unit/widget tests do not replace physical-device, database, and end-to-end testing.
@@ -236,13 +242,13 @@ The handbook requires an existing prototype to be declared at kickoff and the ev
 | --- | --- |
 | Repository | [Devadathan69/MaatriWatch](https://github.com/Devadathan69/MaatriWatch) |
 | Prior prototype declaration | Baseline documented; team must declare it to organizers |
-| Weekend core feature / surprise element | Not yet recorded; add actual implementation, commits, and evidence |
+| Weekend development | Companion (`2ab7aee`), bilingual concerns (`dfa1db7`), report/nutrition (`582a0fa`), and consultation integration (this phase-4 commit). Organizer surprise-element acceptance is not established. |
 | Product demo link | Pending a verified hosted app, video, or presentation |
 | Pitch deck (six slides maximum) | Not supplied in this repository |
 | AI Impact Statement | Included above |
 | Registered team names, roles, contacts | Pending team confirmation |
 
-Future feature research and roadmap choices are deferred to development, as requested. Keep researched proposals separate from shipped functionality, then record the actual weekend work and evaluation results here.
+The requested four phases are implemented as a prototype. Further roadmap proposals should remain separate from tested functionality, with deployment and clinical-validation gaps tracked explicitly.
 
 ## Team
 
