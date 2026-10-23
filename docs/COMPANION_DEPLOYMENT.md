@@ -18,7 +18,19 @@ flutter pub get
 flutter run -t lib/companion_demo.dart -d chrome --web-hostname localhost --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
-The banner identifies synthetic data. The fixture server never loads `.env`, real database/provider credentials, or patient data. Companion storage is process-local in this mode and resets on restart. It seeds a report, concern, food plan, availability, and a booking. AI/video calls are unconfigured, so the demo cannot fabricate a model answer or an actual consultation.
+The banner identifies synthetic data. By default the fixture server never loads `.env`, real database/provider credentials, or patient data. Companion storage is process-local in this mode and resets on restart. It seeds a report, concern, food plan, availability, and a booking. Unconfigured AI/video calls produce explicit errors.
+
+To test real AI replies, concern extraction/transcription, and report extraction against synthetic data, explicitly enable OpenAI:
+
+```powershell
+.\.venv\Scripts\python.exe backend/scripts/run_local_demo.py --with-openai
+```
+
+This option reads only allowlisted OpenAI settings from `backend/.env` or the process environment. It never enables database, Firebase, Daily, or Twilio credentials. Requests use the configured OpenAI account and incur its API usage. Existing per-feature processing consent and memory controls still apply. `--check-config` reports only enablement booleans and exits without contacting providers.
+
+For a USB-connected Android phone, use `adb reverse tcp:8000 tcp:8000`, then run `flutter run -t lib/companion_demo.dart -d DEVICE_ID --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`. USB debugging authorization is required. Keep the laptop/backend running and USB connected. This test build bypasses Firebase sign-in; use the normal `lib/main.dart` build with Firebase client settings for authenticated account and push testing.
+
+Video may remain disabled while booking/cancellation/rescheduling are tested. A different video provider requires an explicit integration; a free public meeting URL is not a replacement for appointment-bound authorization.
 
 ## Database and service setup
 
@@ -67,5 +79,7 @@ The web call frame and Android WebView use pinned Daily JS `0.94.0`. Camera/micr
 ## Verification and remaining limits
 
 Run `python scripts/run_tests.py` from `backend/`, then `flutter analyze` and `flutter test` in each Flutter app. These tests use synthetic data and mocked providers. Actual database migrations/concurrent transactions, model extraction/transcription quality (especially Malayalam), native notification delivery, and a real two-party video call require staging verification. The report/nutrition policy is documented in [REPORT_POLICY.md](REPORT_POLICY.md).
+
+On 23 October 2026, the four-tab Android demo was installed on a connected phone over USB. With explicit OpenAI opt-in, live synthetic API checks passed chat, symptom extraction, text/PDF report extraction, and English audio transcription. The backend suite now contains 81 passing tests, including default credential isolation and OpenAI-only opt-in checks. These small connection/format checks are not clinical or multilingual accuracy evaluations.
 
 Before clinical use, obtain governance approval for comparisons/response ownership, validate models and hardware with representative data, review privacy/retention/access controls, and have a clinician/dietitian review personalised plans. No medical accuracy, nutrient adequacy, regulated-device status, or clinical outcome is established by software tests.
