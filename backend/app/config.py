@@ -123,4 +123,6 @@ class Config:
             errors.append("FIREBASE_AUTH_ACTION_URL")
         if value("DEMO_MODE") or value("DEMO_IN_MEMORY"):
             errors.append("DEMO_MODE/DEMO_IN_MEMORY must be false")
+        if value("ALLOW_UNVERIFIED_PATIENT_DEMO"):
+            errors.append("ALLOW_UNVERIFIED_PATIENT_DEMO must be false")
         return errors

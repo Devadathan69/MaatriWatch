@@ -24,7 +24,7 @@ Connect/unlock the Android phone, allow USB debugging, and run from the reposito
 pwsh -File backend/scripts/start_phone_testing.ps1
 ```
 
-The helper starts the API and workers, restores USB forwarding for connected authorized phones, and checks readiness with an actual database query. It reuses recorded service processes instead of starting duplicate workers. Add `-Restart` after changing backend configuration to reload all three services. Docker is started only when the configuration selects the local fallback database.
+The helper starts the API and workers, restores USB forwarding for connected authorized phones, and checks readiness with an actual database query. A small background USB helper restores forwarding automatically within a few seconds whenever either test phone reconnects. Keep both phones connected for simultaneous SOS testing. It reuses recorded service processes instead of starting duplicates. Add `-Restart` after changing backend configuration to reload the services. Docker is started only when the configuration selects the local fallback database.
 
 Install and run the normal app from `patient_app/`:
 
@@ -33,6 +33,8 @@ flutter run --debug -t lib/main.dart -d DEVICE_ID --dart-define-from-file=fireba
 ```
 
 Use `flutter devices` to find `DEVICE_ID`. The compiled debug APK is also available locally under `patient_app/build/app/outputs/flutter-apk/app-debug.apk`. Re-running the startup helper after reconnecting restores the USB route; keep the laptop, services, and internet connection running during testing. The database switch needs no change to the phone's API URL.
+
+If opening the app shows **Let’s reconnect**, keep its USB cable connected, confirm USB debugging is authorized, and tap **Try again**. Returning to the app also retries a failed account lookup. The local test server must still be running; Supabase hosts the database, not the API. Account opening allows up to 75 seconds for a hosted server to wake, then shows a readable connection message instead of raw socket details. Authentication and access restrictions remain enforced.
 
 ## Test sign-in
 

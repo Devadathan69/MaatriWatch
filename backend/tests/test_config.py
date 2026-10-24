@@ -4,6 +4,13 @@ from app.config import Config
 
 
 class ProductionConfigTest(unittest.TestCase):
+    def test_production_configuration_rejects_email_verification_bypass(self):
+        errors = Config.production_configuration_errors({
+            "IS_PRODUCTION": True,
+            "ALLOW_UNVERIFIED_PATIENT_DEMO": True,
+        })
+        self.assertIn("ALLOW_UNVERIFIED_PATIENT_DEMO must be false", errors)
+
     def test_production_configuration_rejects_development_secret(self):
         original = {
             "IS_PRODUCTION": Config.IS_PRODUCTION,

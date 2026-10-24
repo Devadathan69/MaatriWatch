@@ -1,0 +1,65 @@
+name: maatriwatch
+
+x-backend: &backend
+  image: maatriwatch-api:local
+  build:
+    context: ../backend
+  env_file:
+    - ../backend/.env.production
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  stop_grace_period: 40s
+
+services:
+  api:
+    <<: *backend
+    command: ["python", "container_entrypoint.py", "web"]
+    environment:
+      PORT: "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=6).close()"]
+      interval: 30s
+      timeout: 8s
+      start_period: 40s
+      retries: 3
+
+  realtime:
+    <<: *backend
+    command: ["python", "container_entrypoint.py", "realtime"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  companion:
+    <<: *backend
+    command: ["python", "container_entrypoint.py", "companion"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  https:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_HOST: ${API_HOST:?Set API_HOST to the public API hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:

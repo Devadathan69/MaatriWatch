@@ -6,7 +6,7 @@ import os
 
 import click
 
-from flask import Flask, abort, jsonify, request
+from flask import Flask, abort, jsonify, render_template, request
 
 from .ai_chat import ai_chat_bp
 from .auth import auth_bp
@@ -84,6 +84,20 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.get("/healthz")
     def healthz():
         return jsonify({"service": "maatriwatch-api", "status": "ok"})
+
+    @app.get("/activate")
+    def activation_continue():
+        # Firebase's hosted handler completes password reset/verification.
+        # This is only its continue page and never reads or echoes action codes.
+        response = app.make_response(render_template("activate.html"))
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; "
+            "frame-ancestors 'none'; form-action 'none'"
+        )
+        return response
 
     @app.get("/readyz")
     def readyz():

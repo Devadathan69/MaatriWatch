@@ -35,25 +35,58 @@ class PatientAuthGate extends StatelessWidget {
       if (!user.emailVerified && !allowUnverifiedEmail) {
         return _EmailVerificationPage(auth: auth, user: user);
       }
-      return _AccountHome(key: ValueKey(user.uid), onSignOut: _signOut);
+      return AccountAccessGate(key: ValueKey(user.uid), onSignOut: _signOut);
     },
   );
 }
 
-class _AccountHome extends StatefulWidget {
-  const _AccountHome({super.key, required this.onSignOut});
+class AccountAccessGate extends StatefulWidget {
+  const AccountAccessGate({super.key, required this.onSignOut, this.api});
   final Future<void> Function() onSignOut;
+  final PatientApi? api;
   @override
-  State<_AccountHome> createState() => _AccountHomeState();
+  State<AccountAccessGate> createState() => _AccountAccessGateState();
 }
 
-class _AccountHomeState extends State<_AccountHome> {
-  final _api = PatientApi();
+class _AccountAccessGateState extends State<AccountAccessGate>
+    with WidgetsBindingObserver {
+  late final PatientApi _api;
   late Future<Map<String, dynamic>> _access;
+  bool _accessFailed = false;
   @override
   void initState() {
     super.initState();
-    _access = _api.accountAccess();
+    WidgetsBinding.instance.addObserver(this);
+    _api = widget.api ?? PatientApi();
+    _access = _loadAccess();
+  }
+
+  Future<Map<String, dynamic>> _loadAccess() async {
+    _accessFailed = false;
+    try {
+      return await _api.accountAccess();
+    } catch (_) {
+      _accessFailed = true;
+      rethrow;
+    }
+  }
+
+  void _retry() {
+    final access = _loadAccess();
+    setState(() {
+      _access = access;
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _accessFailed) _retry();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -64,6 +97,9 @@ class _AccountHomeState extends State<_AccountHome> {
         return const _ProgressScreen();
       }
       if (snapshot.hasError) {
+        final error = snapshot.error;
+        final connectionError =
+            error is PatientApiException && error.statusCode == 0;
         return Scaffold(
           body: Center(
             child: Padding(
@@ -71,10 +107,31 @@ class _AccountHomeState extends State<_AccountHome> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(snapshot.error.toString()),
+                  Icon(
+                    connectionError
+                        ? Icons.cloud_off_outlined
+                        : Icons.info_outline,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    connectionError
+                        ? 'Let’s reconnect'
+                        : 'We could not open your account',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    error is PatientApiException
+                        ? error.message
+                        : 'MaatriWatch is temporarily unavailable. Please try again.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: () =>
-                        setState(() => _access = _api.accountAccess()),
+                    onPressed: _retry,
                     child: const Text('Try again'),
                   ),
                   TextButton(
@@ -414,8 +471,20 @@ class _EmailVerificationPageState extends State<_EmailVerificationPage> {
 class _ProgressScreen extends StatelessWidget {
   const _ProgressScreen();
   @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => const Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 20),
+          Text('Connecting to MaatriWatch…'),
+          SizedBox(height: 8),
+          Text('This may take a moment.'),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Message extends StatelessWidget {

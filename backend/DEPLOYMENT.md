@@ -64,7 +64,8 @@ non-production database.
 5. Set `FIREBASE_PROJECT_ID` and `FIREBASE_DATABASE_URL`.
 6. Register the HTTPS patient activation page in Firebase Authentication's
    authorised domains, then set that exact page as `FIREBASE_AUTH_ACTION_URL`.
-   This URL receives Firebase's one-time password-reset/activation action.
+   This is the continue URL after Firebase's hosted action handler completes
+   the password reset. The backend's `/activate` page supports this purpose.
 7. Deploy the database rules in `backend/firebase/database.rules.json` after
    reviewing them for the production project. On a clinician's successful
    dashboard sign-in, the server refreshes that clinician's minimal RTDB
@@ -96,22 +97,29 @@ manager.
 
 ## 5. Deploy
 
+The portable [container deployment guide](../deploy/README.md) includes a
+non-root image, a Gunicorn runtime, supervised API/worker operation for managed
+hosts, and HTTPS Compose deployment for a Linux CPU VM such as Neysa. It also
+explains the public-API phone cutover and free-host sleep limitations.
+
 The repository's `backend/Procfile` defines the processes:
 
 ```text
 web: gunicorn --bind 0.0.0.0:$PORT "app:create_app()"
 worker: python -m app.realtime_worker
+companion: python -m app.companion_worker
 ```
 
-For Render/Railway/Fly, create **two services from `backend/`** using the same
+For always-on hosts, create **three services from `backend/`** using the same
 environment variables:
 
 - Web service start command: `gunicorn --bind 0.0.0.0:$PORT "app:create_app()"`
 - Worker start command: `python -m app.realtime_worker`
+- Companion/SOS worker start command: `python -m app.companion_worker`
 
 Run `scripts/apply_migrations.py` once as a controlled release job before the
 first web deployment and before deploying any migration that changes schema.
-This release adds `007_activation_and_device_health.sql`.
+The current schema includes migrations through `014_guardian_notifications.sql`.
 
 ## 6. Bootstrap real accounts and invite patients
 

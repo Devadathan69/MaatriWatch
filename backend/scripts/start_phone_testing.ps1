@@ -48,6 +48,7 @@ $expectedCommands = @{
     'phone-api' = 'app:create_app()'
     'phone-reminders' = 'app.companion_worker'
     'phone-realtime' = 'app.realtime_worker'
+    'phone-usb' = 'scripts/phone_usb_bridge.py'
 }
 if ($Restart) {
     foreach ($name in $expectedCommands.Keys) {
@@ -100,12 +101,14 @@ if ($listener) {
 }
 Start-PhoneService 'phone-reminders' @('-u', '-m', 'app.companion_worker') 'app.companion_worker'
 Start-PhoneService 'phone-realtime' @('-u', '-m', 'app.realtime_worker') 'app.realtime_worker'
-$services | ConvertTo-Json | Set-Content -LiteralPath $statePath
-
 $devices = @()
-if (Get-Command adb -ErrorAction SilentlyContinue) {
+$adbCommand = Get-Command adb -ErrorAction SilentlyContinue
+if ($adbCommand) {
     $devices = @(& adb devices | Select-String '^\S+\s+device$' | ForEach-Object { ($_.Line -split '\s+')[0] })
+    Start-PhoneService 'phone-usb' @('-u', 'scripts/phone_usb_bridge.py', '--adb', ('"' + $adbCommand.Source + '"')) 'scripts/phone_usb_bridge.py'
+    Write-Output 'USB connections will be restored automatically when authorized phones reconnect.'
 }
+$services | ConvertTo-Json | Set-Content -LiteralPath $statePath
 foreach ($deviceId in $devices) { & adb -s $deviceId reverse tcp:8000 tcp:8000 | Out-Null }
 if ($devices.Count -eq 0) { Write-Output 'Reconnect the Android phone, then run this script again to restore its USB connection.' }
 $ready = $false

@@ -1,0 +1,17 @@
+# Allowlist the complete image context. Local credentials, dumps, uploads,
+# test accounts and .env files must never reach the builder.
+**
+!Dockerfile
+!.dockerignore
+!requirements.txt
+!gunicorn.conf.py
+!container_entrypoint.py
+!app/
+!app/**
+!db/
+!db/migrations/
+!db/migrations/*.sql
+!scripts/
+!scripts/apply_migrations.py
+**/__pycache__/**
+**/*.pyc
