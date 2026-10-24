@@ -27,8 +27,14 @@ def get_db():
     if not pool:
         abort(503, description="Database is not configured")
     if "db_connection" not in g:
-        pool.open(wait=True)
-        g.db_connection = pool.getconn()
+        try:
+            # Pool.wait() closes the pool permanently if startup times out.
+            # Let background connection attempts recover while a request waits
+            # only for its own checkout, without changing the pool lifecycle.
+            pool.open(wait=False)
+            g.db_connection = pool.getconn(timeout=10)
+        except DatabaseError:
+            abort(503, description="The care service is temporarily unavailable. Your changes were not saved; please try again.")
     return g.db_connection
 
 
@@ -38,7 +44,7 @@ def database_ready() -> bool:
     if not pool:
         return False
     try:
-        pool.open(wait=True, timeout=3)
+        pool.open(wait=False)
         with pool.connection(timeout=3) as connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1")
@@ -52,6 +58,12 @@ def close_db(_exception=None):
     pool = current_app.extensions.get("db_pool")
     if connection and pool:
         # SELECT-only requests still start a transaction; never return one to the pool open.
-        if not connection.autocommit:
-            connection.rollback()
-        pool.putconn(connection)
+        try:
+            if not connection.autocommit:
+                connection.rollback()
+        except DatabaseError:
+            # Return a closed connection so the pool replaces it. Never leak
+            # a checkout or hide the API response when cleanup loses a socket.
+            connection.close()
+        finally:
+            pool.putconn(connection)

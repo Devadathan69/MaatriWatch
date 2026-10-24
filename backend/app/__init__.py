@@ -148,6 +148,13 @@ def create_app(test_config: dict | None = None) -> Flask:
     def service_unavailable(error):
         return jsonify({"error": "service_unavailable", "message": str(error.description)}), 503
 
+    @app.errorhandler(500)
+    def internal_error(_error):
+        return jsonify({
+            "error": "internal_error",
+            "message": "MaatriWatch could not complete this request. Please try again.",
+        }), 500
+
     @app.cli.command("drain-realtime-outbox")
     @click.option("--limit", default=100, show_default=True, type=click.IntRange(1, 1000))
     def drain_realtime_outbox(limit):
