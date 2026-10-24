@@ -31,7 +31,7 @@ MaatriWatch brings a patient companion, longitudinal concern history, report rev
 | Monthly concern report | Brief sections covering experienced symptoms, severity, patterns and major insights, with supporting-report links. | Summarises reported information rather than diagnosing conditions; sharing is optional. |
 | Reports and Nourish | Extract PDF/image/text report readings for confirmation, apply supported pregnancy-specific comparison rules, then ask about diet, allergies, dislikes, nausea and other preferences before AI food suggestions. | Offers foods to consider, limit or avoid. No automatic weekly meal schedule; unsupported readings remain inconclusive and clinician review is needed. |
 | Event reminders | Record the event, its date/time and notice at the event or an hour, day, three days or week before; persistent inbox and optional Android notifications. | Delivery depends on the worker, connectivity, permissions and host availability. |
-| Guardian SOS | Invite up to three guardians using email-bound, one-use codes; verified guardians enable Android notifications and receive a durable SOS inbox. | Guardians receive no medical-report or chat access. Actual two-phone notification delivery remains a device-test item. |
+| Guardian SOS | Invite up to three guardians using email-bound, one-use codes; verified guardians enable Android notifications and receive a durable SOS inbox. | Guardians receive no medical-report or chat access. The recorded demo shows the guardian inbox; background/lock-screen push delivery still needs verification. |
 | Consultations | Clinician availability, patient booking/cancellation/rescheduling and appointment reminders. Private Daily video integration exists in source. | **Video is disabled** in the current deployment; booking remains available. |
 | Wearable and care team | XIAO ESP32-S3 telemetry, MAX30102 heart-rate/SpO₂ estimates, TMP117 skin-adjacent temperature, MPU6050 motion context, OLED/SOS button; clinician trends, alert actions, notes and messages. | Sensor estimates and fall-related rules are unvalidated; the watch does not measure blood pressure or core body temperature. |
 
@@ -70,7 +70,9 @@ The watch or HTTP simulator sends authenticated telemetry to the API. PostgreSQL
 
 ### Product demo
 
-**Product demo video, hosted user interface or presentation: pending — the team will add the link.**
+**[Watch or download the product demo](https://github.com/Devadathan69/MaatriWatch/raw/refs/heads/main/docs/demo/maatriwatch-demo.mp4)** — MP4, 2 minutes 53 seconds, approximately 13 MB. The video is also available in the [repository](docs/demo/maatriwatch-demo.mp4).
+
+The demonstration starts with the wearable prototype, continues through the patient companion, reminders, bilingual concern logging, monthly summary and food suggestions, and finishes with a patient SOS request and the guardian's SOS inbox. Phone screens use a synthetic test patient.
 
 The [hosted API status](https://maatriwatch-api.onrender.com/healthz) and [readiness endpoint](https://maatriwatch-api.onrender.com/readyz) are live. These are backend checks, **not a product demo showing the prototype in action**.
 
@@ -167,7 +169,7 @@ As of 24 October 2026: **99 backend tests, 21 patient-app tests and four dashboa
 - Isolated Supabase checks covered persistent records, guardian email binding, invitation reuse prevention, tenant/role isolation, revocation and reminder/food storage. Firebase verification and notification sends were mocked inside those isolated checks.
 - A Malayalam concern saved, appeared in history and persisted on a fresh Supabase connection after a simulated health-check timeout. The synthetic fixture was removed afterward.
 - Live OpenAI synthetic checks exercised chat, symptom/report extraction, audio transcription, concise monthly summaries and preference/report-aware food guidance. These smoke checks do not establish model accuracy or clinical benefit.
-- Render readiness and unauthenticated rejection were verified. Actual two-phone push delivery and two-party video calls remain device/provider checks.
+- Render readiness and unauthenticated rejection were verified. The recorded demo shows a patient SOS request and the guardian's SOS inbox. Background/lock-screen push delivery and two-party video calls remain device/provider checks.
 
 Run credential-isolated backend tests from the root:
 
@@ -207,8 +209,8 @@ Expected outcomes are better continuity for mothers, clearer consultation histor
 - **Clinical scope:** wearable estimates, report thresholds and food suggestions are not a validated medical product. The watch does not measure blood pressure/core temperature; no validated fall classifier, PPH detection or PPD diagnosis is provided.
 - **AI reliability:** extraction, multilingual understanding and summaries can omit or misinterpret information. Confirmation and clinician review remain required; schema checks do not prove medical correctness.
 - **Feature status:** video is disabled. Full localization, offline store-and-forward, automatic activity tracking, signed fleet OTA updates, continuous voice interaction and a complete admin interface are future work.
-- **Remaining validation:** actual guardian push delivery, clinical outcomes, nutrition adequacy, production retention/security operations and a distributable privately signed release need further work.
-- **Submission gaps:** the product demo link and pitch deck have not been supplied; organizer confirmation of prior-work disclosure and surprise-element completion is not recorded.
+- **Remaining validation:** background/lock-screen guardian push delivery, clinical outcomes, nutrition adequacy, production retention/security operations and a distributable privately signed release need further work.
+- **Submission gaps:** the pitch deck has not been supplied; organizer confirmation of prior-work disclosure and surprise-element completion is not recorded.
 
 ### Assumptions and trade-offs
 
@@ -225,4 +227,4 @@ Hospitals provision patient access and clinicians own follow-up/escalation. Pati
 
 **Team/repository contact:** [Devadathan69 on GitHub](https://github.com/Devadathan69). Additional preferred contact details can be added by the team.
 
-**Submission repository:** [Devadathan69/MaatriWatch](https://github.com/Devadathan69/MaatriWatch). Product demo link will be added when supplied; the separate pitch deck must contain no more than six slides.
+**Submission repository:** [Devadathan69/MaatriWatch](https://github.com/Devadathan69/MaatriWatch). The [product demo video](docs/demo/maatriwatch-demo.mp4) is included; the separate pitch deck must contain no more than six slides.
