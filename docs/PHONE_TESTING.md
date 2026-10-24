@@ -1,6 +1,17 @@
 # Signed-in Android testing with persistent data
 
-The phone-testing environment uses the normal patient application, Firebase email/password authentication, Supabase PostgreSQL, and server-side OpenAI. Video is disabled. The database is hosted in Supabase; the API and workers still run on the laptop.
+The current phone-testing build uses the public HTTPS API at **https://maatriwatch-api.onrender.com/api/v1**, Firebase email/password authentication, Supabase PostgreSQL, and server-side OpenAI. Video is disabled. USB is needed only to install an updated APK; the installed public build works over Wi-Fi or mobile data.
+
+## Current Render deployment — 24 October 2026
+
+- Render service `maatriwatch-api` is on the **Free** plan in Singapore. Its Docker image supervises Gunicorn, the realtime outbox worker, and the companion/SOS worker. The deployed runtime commit is `8338eca` on `codex/kochi-hackathon-baseline`; automatic redeploys are disabled.
+- Public `/healthz`, `/readyz`, and `/activate` returned 200; `/readyz` confirmed Supabase and Firebase readiness. Unauthenticated `/api/v1/account/access` returned 401. Firebase authorized the new hostname while retaining existing domains. Laptop API/workers were stopped after cloud readiness succeeded.
+- Production flags are enabled; all demo flags and the email-verification bypass are false. Private credentials are platform environment secrets and remain excluded from Git and the Docker image. The existing Supabase database and accounts were retained.
+- `patient_app/firebase-config.local.json` now selects the public API. Its previous USB configuration is backed up in ignored `output/phone-firebase-config-before-render.json`. The HTTPS APK must be installed on **both** phones, one at a time with the single cable, before testing without USB.
+- Render Free sleeps after 15 minutes without inbound traffic, and waking can take about a minute. Sleeping also stops the workers, so reminders and SOS do **not** have guaranteed continuous delivery. The app allows up to 75 seconds for account lookup during wake-up. Use funded always-on hosting before relying on continuous notifications. See [Render's documented limits](https://render.com/docs/free).
+- The Neysa event quickstart supplies model inference endpoints, not an API/worker deployment environment. This deployment continues to use the configured OpenAI integration.
+
+The sections below describe the preserved **local USB fallback**. Running its helper restarts laptop services; the current HTTPS phone build will continue to use Render unless its API configuration is deliberately switched back.
 
 ## Configured services
 

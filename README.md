@@ -17,6 +17,8 @@ Patients can invite up to three guardians using an email-bound, one-use code. A 
 
 Apply migrations `010`–`014` using the migration helper. Run `python -m app.companion_worker` from `backend/` alongside the existing API/outbox worker. The local connected companion demo is `flutter run -t lib/companion_demo.dart -d chrome --web-hostname localhost --web-port 3001 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` from `patient_app/`, against a localhost backend with both demo flags enabled and `http://localhost:3001` in CORS. This demo is debug-only and uses synthetic patient state. No model answer is fabricated if OpenAI is unconfigured.
 
+Signed-in Android testing now uses the [public HTTPS API](https://maatriwatch-api.onrender.com/healthz) on Render, with the existing Supabase database and Firebase identity/push. After installing the HTTPS build on each phone, no USB connection is needed. Render Free sleeps when idle and cannot guarantee continuous reminders/SOS; see [phone testing](docs/PHONE_TESTING.md) and the [portable deployment guide](deploy/README.md).
+
 Run credential-isolated backend tests with `.\.venv\Scripts\python.exe backend/scripts/run_tests.py` from the repository root.
 
 For the isolated synthetic demonstration, run `.\.venv\Scripts\python.exe backend/scripts/run_local_demo.py` from the root, then start the connected Flutter demo above. It seeds a report, concern and food preferences. AI food advice is generated only with explicit `--with-openai` opt-in; no static plan substitutes for an unavailable model. See the [demo and USB testing instructions](docs/COMPANION_DEPLOYMENT.md).
